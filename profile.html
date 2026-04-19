@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>MathWar — Profile</title>
+  <!-- PWA (P4-T18) -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#1565C0" />
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(() => console.log('[MathWar] PWA registered'))
+          .catch(err => console.warn('[MathWar] PWA failed:', err));
+      });
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <!-- sql.js moved to body -->
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ── Profile-page-specific styles ── */
+    html, body { overflow-y: auto !important; touch-action: auto !important; }
+    body { background: #070D1F; color: #fff; font-family: 'Nunito', 'Poppins', sans-serif; margin: 0; min-height: 100vh; }
+    .profile-shell { max-width: 520px; margin: 0 auto; padding: 0 0 40px; }
+
+    /* Top bar */
+    .profile-topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px;
+      background: rgba(0,0,0,0.45);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .back-btn { background: none; border: none; color: rgba(255,255,255,0.7); font-size: 1.4rem; cursor: pointer; }
+    .topbar-title { font-weight: 800; letter-spacing: 3px; font-size: 1rem; color: #fff; }
+
+    /* Profile card */
+    .profile-card {
+      margin: 24px 16px 0;
+      background: linear-gradient(135deg, #0D2052, #1B0D3E);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 28px 24px;
+      text-align: center;
+      position: relative;
+    }
+    .avatar-area { position: relative; display: inline-block; margin-bottom: 14px; }
+    .avatar-display {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: rgba(255,255,255,0.1); border: 3px solid #1565C0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.6rem; margin: 0 auto;
+      cursor: pointer; transition: transform 0.15s;
+    }
+    .avatar-display:hover { transform: scale(1.08); }
+    .avatar-change-hint { font-size: 0.72rem; color: rgba(255,255,255,0.45); margin-top: 4px; }
+
+    /* Avatar picker */
+    .avatar-picker {
+      display: none; flex-wrap: wrap; gap: 8px; justify-content: center;
+      margin-top: 12px;
+      background: rgba(0,0,0,0.3); border-radius: 14px; padding: 12px;
+    }
+    .avatar-picker.open { display: flex; }
+    .avatar-option {
+      width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.1);
+      display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
+      cursor: pointer; border: 2px solid transparent; transition: border-color 0.15s, transform 0.1s;
+    }
+    .avatar-option:hover  { border-color: #1565C0; transform: scale(1.12); }
+    .avatar-option.chosen { border-color: #42A5F5; }
+
+    .profile-name { font-size: 1.35rem; font-weight: 800; }
+    .profile-meta { color: rgba(255,255,255,0.55); font-size: 0.85rem; margin: 4px 0; }
+    .profile-email { color: rgba(255,255,255,0.4); font-size: 0.8rem; }
+
+    /* Stats row */
+    /* Three.js particle canvas */
+    #profileBg { position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:0.2; }
+    .profile-shell { position:relative;z-index:1; }
+
+    /* Animated avatar ring */
+    .avatar-display {
+      position:relative;
+      box-shadow:0 0 0 3px #1565C0,0 0 0 5px rgba(21,101,192,0.3),0 0 30px rgba(21,101,192,0.5);
+      animation:avatarPulse 3s ease-in-out infinite;
+    }
+    @keyframes avatarPulse {
+      0%,100% { box-shadow:0 0 0 3px #1565C0,0 0 20px rgba(21,101,192,0.4); }
+      50%     { box-shadow:0 0 0 4px #42A5F5,0 0 40px rgba(66,165,245,0.7); }
+    }
+    /* Stats counter animation */
+    .stat-value.counting { animation:countUp 0.6s ease forwards; }
+    @keyframes countUp {
+      from { transform:scale(0.5);opacity:0; }
+      to   { transform:scale(1);opacity:1; }
+    }
+    /* Win rate circular progress */
+    .win-rate-ring { position:relative;width:80px;height:80px;margin:0 auto 8px; }
+    .win-rate-ring svg { transform:rotate(-90deg); }
+    .win-rate-ring .ring-bg  { fill:none;stroke:rgba(255,255,255,0.1);stroke-width:6; }
+    .win-rate-ring .ring-fill { fill:none;stroke:#66BB6A;stroke-width:6;
+      stroke-linecap:round;transition:stroke-dashoffset 1.5s cubic-bezier(0.25,1,0.5,1);
+      stroke-dasharray:201;stroke-dashoffset:201; }
+    .win-rate-ring .ring-text { position:absolute;top:50%;left:50%;
+      transform:translate(-50%,-50%);font-size:1.05rem;font-weight:900;color:#66BB6A; }
+    /* Match card slide-in */
+    .match-card { opacity:0;transform:translateX(-20px);
+      transition:opacity 0.4s ease,transform 0.4s ease; }
+    .match-card.visible { opacity:1;transform:translateX(0); }
+    /* Achievement grid */
+    .achievement-grid { display:grid;grid-template-columns:repeat(5,1fr);
+      gap:8px;padding:0 16px;margin-top:8px; }
+    .ach-badge { width:52px;height:52px;border-radius:50%;display:flex;
+      align-items:center;justify-content:center;font-size:1.4rem;
+      border:2px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);
+      cursor:default;transition:transform 0.2s,box-shadow 0.2s;position:relative; }
+    .ach-badge.unlocked { border-color:#FFD700;background:rgba(255,215,0,0.12);
+      box-shadow:0 0 14px rgba(255,215,0,0.4);
+      animation:achShine 2s ease-in-out infinite alternate; }
+    .ach-badge.locked { filter:grayscale(1);opacity:0.35; }
+    @keyframes achShine {
+      from { box-shadow:0 0 8px rgba(255,215,0,0.3); }
+      to   { box-shadow:0 0 20px rgba(255,215,0,0.7); }
+    }
+    .ach-badge:hover .ach-tooltip { opacity:1;transform:translateX(-50%) translateY(0); }
+    .ach-tooltip { position:absolute;bottom:110%;left:50%;
+      transform:translateX(-50%) translateY(8px);background:rgba(0,0,0,0.9);
+      color:#fff;font-size:0.65rem;padding:4px 8px;border-radius:6px;
+      white-space:nowrap;opacity:0;pointer-events:none;z-index:10;
+      transition:opacity 0.2s,transform 0.2s; }
+    /* Profile card shimmer */
+    .profile-card { position:relative;overflow:hidden; }
+    .profile-card::after { content:'';position:absolute;top:-50%;left:-50%;
+      width:200%;height:200%;
+      background:conic-gradient(from 0deg,transparent 340deg,rgba(66,165,245,0.08) 360deg);
+      animation:cardSpin 8s linear infinite;pointer-events:none; }
+    @keyframes cardSpin { to { transform:rotate(360deg); } }
+    .stats-row {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 1px; margin: 20px 16px 0;
+      background: rgba(255,255,255,0.07);
+      border-radius: 14px; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .stat-cell {
+      background: #0A1530; padding: 16px 8px; text-align: center;
+    }
+    .stat-value { font-size: 1.8rem; font-weight: 900; color: #42A5F5; line-height: 1; }
+    .stat-label { font-size: 0.72rem; color: rgba(255,255,255,0.45); letter-spacing: 1px; margin-top: 4px; text-transform: uppercase; }
+    .stat-cell:first-child .stat-value { color: #FFFFFF; }
+    .stat-cell:nth-child(3) .stat-value { color: #66BB6A; }
+
+    /* Match history */
+    .section-title {
+      font-size: 0.78rem; font-weight: 700; letter-spacing: 2px; color: rgba(255,255,255,0.4);
+      text-transform: uppercase;
+      margin: 28px 16px 10px;
+    }
+    .match-list { padding: 0 16px; display: flex; flex-direction: column; gap: 8px; }
+    .match-card {
+      background: #0D1C3E; border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px; padding: 14px 16px;
+      display: grid; grid-template-columns: 48px 1fr auto;
+      align-items: center; gap: 12px;
+    }
+    .match-badge {
+      width: 44px; height: 44px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem;
+    }
+    .match-badge.win  { background: rgba(46,125,50,0.3); border: 2px solid #4CAF50; }
+    .match-badge.loss { background: rgba(198,40,40,0.3); border: 2px solid #EF5350; }
+    .match-badge.tie  { background: rgba(100,100,100,0.3); border: 2px solid #9E9E9E; }
+    .match-info-top { font-size: 0.88rem; font-weight: 700; }
+    .match-info-sub { font-size: 0.75rem; color: rgba(255,255,255,0.45); margin-top: 3px; }
+    .match-score { font-size: 1.1rem; font-weight: 900; text-align: right; }
+    .match-score.win  { color: #4CAF50; }
+    .match-score.loss { color: #EF5350; }
+    .match-score.tie  { color: #9E9E9E; }
+
+    .no-matches { text-align: center; color: rgba(255,255,255,0.3); font-size: 0.9rem; padding: 32px; }
+
+    /* Action buttons */
+    .profile-actions {
+      display: flex; gap: 12px; padding: 20px 16px 0;
+    }
+    .profile-action-btn {
+      flex: 1; padding: 12px; border-radius: 12px; border: none;
+      font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 0.85rem;
+      letter-spacing: 1px; cursor: pointer; transition: transform 0.1s, opacity 0.15s;
+    }
+    .profile-action-btn:active { transform: scale(0.96); }
+    .btn-logout { background: rgba(198,40,40,0.25); color: #EF5350; border: 1px solid rgba(198,40,40,0.35); }
+    .btn-edit   { background: rgba(21,101,192,0.25); color: #42A5F5; border: 1px solid rgba(21,101,192,0.35); }
+
+    /* Loading skeleton */
+    .skeleton { background: rgba(255,255,255,0.07); border-radius: 6px; animation: skelPulse 1.2s infinite; }
+    @keyframes skelPulse { 0%,100%{opacity:.5} 50%{opacity:1} }
+
+    /* Edit Modal */
+    .edit-modal {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.8); z-index: 1000;
+      align-items: center; justify-content: center;
+      padding: 16px; backdrop-filter: blur(4px);
+    }
+    .edit-modal.open { display: flex; }
+    .edit-modal-content {
+      background: linear-gradient(135deg, #0D2052, #1B0D3E);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px; padding: 24px; width: 100%; max-width: 400px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    }
+    .edit-modal-header {
+      font-size: 1.2rem; font-weight: 800; margin-bottom: 20px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .close-modal-btn { background: none; border: none; color: rgba(255,255,255,0.5); font-size: 1.5rem; cursor: pointer; }
+    .close-modal-btn:hover { color: #fff; }
+    .edit-form-group { margin-bottom: 16px; text-align: left; }
+    .edit-form-group label { display: block; font-size: 0.8rem; color: rgba(255,255,255,0.6); margin-bottom: 6px; }
+    .edit-form-group input, .edit-form-group select {
+      width: 100%; padding: 12px; border-radius: 10px;
+      background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
+      color: #fff; font-family: 'Poppins', sans-serif; box-sizing: border-box;
+    }
+    .edit-form-group input:focus, .edit-form-group select:focus {
+      outline: none; border-color: #42A5F5;
+    }
+    .save-profile-btn {
+      width: 100%; padding: 14px; border-radius: 12px; border: none;
+      background: #1565C0; color: #fff; font-weight: 700; font-family: 'Poppins', sans-serif;
+      cursor: pointer; margin-top: 10px; transition: transform 0.1s, background 0.15s;
+    }
+    .save-profile-btn:active { transform: scale(0.98); }
+    .save-profile-btn:hover { background: #1976D2; }
+  </style>
+</head>
+<body>
+<div class="profile-shell">
+
+  <!-- Top bar -->
+  <div class="profile-topbar">
+    <button class="back-btn" onclick="window.location.href='index.html'" aria-label="Back to game">←</button>
+    <span class="topbar-title">⚔ MATHWAR</span>
+    <span style="width:32px"></span>
+  </div>
+
+  <!-- Profile card -->
+  <div class="profile-card" id="profileCard">
+    <div class="avatar-area">
+      <div class="avatar-display" id="avatarDisplay" onclick="toggleAvatarPicker()" title="Change avatar">🧑</div>
+      <div class="avatar-change-hint">Tap to change</div>
+      <!-- Avatar picker -->
+      <div class="avatar-picker" id="avatarPicker">
+        <div class="avatar-option" onclick="setAvatar('🧑')">🧑</div>
+        <div class="avatar-option" onclick="setAvatar('👩')">👩</div>
+        <div class="avatar-option" onclick="setAvatar('🧑‍💻')">🧑‍💻</div>
+        <div class="avatar-option" onclick="setAvatar('👩‍💻')">👩‍💻</div>
+        <div class="avatar-option" onclick="setAvatar('🦁')">🦁</div>
+        <div class="avatar-option" onclick="setAvatar('🐯')">🐯</div>
+        <div class="avatar-option" onclick="setAvatar('🦊')">🦊</div>
+        <div class="avatar-option" onclick="setAvatar('🐺')">🐺</div>
+        <div class="avatar-option" onclick="setAvatar('🤖')">🤖</div>
+        <div class="avatar-option" onclick="setAvatar('👾')">👾</div>
+        <div class="avatar-option" onclick="setAvatar('🧙')">🧙</div>
+        <div class="avatar-option" onclick="setAvatar('🦸')">🦸</div>
+      </div>
+    </div>
+    <div class="profile-name" id="profileName">Loading…</div>
+    <div class="profile-meta" id="profileMeta">@username · Age —</div>
+    <div class="profile-email" id="profileEmail">📧 —</div>
+  </div>
+
+  <!-- Stats row — P5-T22: Win rate ring replaces win% text -->
+  <div class="stats-row">
+    <div class="stat-cell">
+      <div class="stat-value" id="statTotal">—</div>
+      <div class="stat-label">Matches</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-value" id="statWins">—</div>
+      <div class="stat-label">Wins</div>
+    </div>
+    <div class="stat-cell">
+      <div class="win-rate-ring">
+        <svg width="80" height="80" viewBox="0 0 80 80">
+          <circle class="ring-bg"   cx="40" cy="40" r="32"/>
+          <circle class="ring-fill" cx="40" cy="40" r="32" id="winRateFill"/>
+        </svg>
+        <div class="ring-text" id="statWinPct">0%</div>
+      </div>
+      <div class="stat-label">WIN RATE</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-value" id="statBest">0</div>
+      <div class="stat-label">BEST SCORE</div>
+    </div>
+  </div>
+
+  <!-- Match history -->
+  <div class="section-title">Match History</div>
+  <div class="match-list" id="matchList">
+    <div class="no-matches">Loading history…</div>
+  </div>
+
+  <!-- P5-T22: Achievement Grid -->
+  <div class="section-title" style="margin-top:20px">ACHIEVEMENTS</div>
+  <div id="achievementGrid" class="achievement-grid"></div>
+
+  <!-- Actions -->
+  <div class="profile-actions">
+    <button class="profile-action-btn btn-logout" onclick="handleLogout()">📤 Logout</button>
+    <button class="profile-action-btn btn-edit"   onclick="openEditModal()">✏️ Edit Profile</button>
+  </div>
+
+  <!-- P3-T11: Export DB File button (SQLite .db) -->
+  <div class="data-actions" style="display:flex;gap:10px;padding:0 16px;margin-top:12px">
+    <button class="profile-action-btn" onclick="MathWarDB.exportDbFile()"
+      style="flex:1;background:#1565C0;color:#fff;border:none;border-radius:12px;
+             padding:12px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;">
+      💾 Export DB File
+    </button>
+    <label class="profile-action-btn" style="flex:1;background:#2E7D32;color:#fff;
+      border-radius:12px;padding:12px;font-size:0.85rem;font-weight:700;
+      cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+      📂 Import Data
+      <input type="file" accept=".json" onchange="handleImport(event)"
+        style="display:none" />
+    </label>
+  </div>
+
+  <!-- Edit Profile Modal -->
+  <div class="edit-modal" id="editModal">
+    <div class="edit-modal-content">
+      <div class="edit-modal-header">
+        <span>Edit Profile</span>
+        <button class="close-modal-btn" onclick="closeEditModal()">×</button>
+      </div>
+      <div class="edit-form-group">
+        <label>Full Name</label>
+        <input type="text" id="editFullName" placeholder="Your Name" />
+      </div>
+      <div class="edit-form-group">
+        <label>Username</label>
+        <input type="text" id="editUsername" placeholder="username" />
+      </div>
+      <div class="edit-form-group">
+        <label>Email (Read-only)</label>
+        <input type="email" id="editEmail" readonly style="opacity: 0.6; cursor: not-allowed;" />
+      </div>
+      <div class="edit-form-group" style="display:flex; gap:12px">
+        <div style="flex:1">
+          <label>Age</label>
+          <input type="number" id="editAge" placeholder="Age" min="5" max="120" />
+        </div>
+        <div style="flex:1">
+          <label>Gender</label>
+          <select id="editGender">
+            <option value="not specified">Prefer not to say</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="edit-form-group">
+        <label>Phone</label>
+        <input type="tel" id="editPhone" placeholder="Phone Number" />
+      </div>
+      <button class="save-profile-btn" onclick="saveProfile()" id="saveProfileBtn">Save Changes</button>
+    </div>
+  </div>
+
+</div>
+
+  <!-- Scripts: Firebase Compat SDK (must load BEFORE db.js) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+  <script src="config.js"></script>
+  <script src="db.js?v=8"></script>
+  <script src="auth.js?v=8"></script>
+<script>
+  const MOCK_AVATARS = ['🧑','👩','👽','🤖','👻','🐉','🦸'];
+  let _currentUid = null;
+  let _currentAvatar = '🧑';
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    // P5-T23: Three.js particle background
+    (function() {
+      const canvas = document.createElement('canvas');
+      canvas.id = 'profileBg';
+      document.body.insertBefore(canvas, document.body.firstChild);
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+      s.onload = () => {
+        if (typeof THREE === 'undefined') return;
+        const renderer = new THREE.WebGLRenderer({ canvas, alpha:true, antialias:false });
+        renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+        renderer.setSize(innerWidth,innerHeight);
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(70,innerWidth/innerHeight,0.1,100);
+        camera.position.z = 6;
+        const N=300, pos=new Float32Array(N*3), col=new Float32Array(N*3), vel=new Float32Array(N*3);
+        for(let i=0;i<N;i++){
+          pos[i*3]=(Math.random()-0.5)*22;pos[i*3+1]=(Math.random()-0.5)*14;pos[i*3+2]=(Math.random()-0.5)*8;
+          vel[i*3]=(Math.random()-0.5)*0.002;vel[i*3+1]=(Math.random()-0.5)*0.002;
+          col[i*3]=0.15+Math.random()*0.2;col[i*3+1]=0.3+Math.random()*0.3;col[i*3+2]=0.7+Math.random()*0.3;
+        }
+        const geo=new THREE.BufferGeometry();
+        geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+        geo.setAttribute('color',new THREE.BufferAttribute(col,3));
+        const mat=new THREE.PointsMaterial({size:0.06,vertexColors:true,transparent:true,opacity:0.7,blending:THREE.AdditiveBlending,depthWrite:false});
+        const cloud=new THREE.Points(geo,mat);scene.add(cloud);
+        let t=0;const pa=geo.attributes.position;
+        function tick(){
+          requestAnimationFrame(tick);t+=0.006;
+          for(let i=0;i<N;i++){
+            pa.array[i*3]+=vel[i*3];pa.array[i*3+1]+=vel[i*3+1]+Math.sin(t+i*0.1)*0.0003;
+            if(pa.array[i*3+1]>7.5)pa.array[i*3+1]=-7.5;
+            if(pa.array[i*3+1]<-7.5)pa.array[i*3+1]=7.5;
+          }
+          pa.needsUpdate=true;cloud.rotation.y=t*0.01;
+          renderer.render(scene,camera);
+        }
+        tick();
+      };
+      document.head.appendChild(s);
+    })();
+
+    // 1. Check Auth
+    const session = MathWarDB.getSession();
+    if (!session) {
+      window.location.href = 'login.html';
+      return;
+    }
+    _currentUid = session.uid;
+
+    // 2. Hydrate Profile
+    const profile = await MathWarDB.getUserProfile(session.uid);
+    const p = profile || session;
+    document.getElementById('avatarDisplay').textContent = p.avatar || '🧑';
+    _currentAvatar = p.avatar || '🧑';
+    document.getElementById('profileName').textContent  = p.fullName || p.displayName || 'Player';
+    document.getElementById('profileMeta').textContent  = `@${p.username || '—'} · Age ${p.age || '—'}`;
+    document.getElementById('profileEmail').textContent = `📧 ${p.email || '—'}`;
+
+    // P5-T21: Animated stat counters
+    const totalVal = parseInt(p.totalMatches) || 0;
+    const winsVal  = parseInt(p.wins)         || 0;
+    const bestVal  = parseInt(p.bestScore)    || 0;
+    const wr       = totalVal ? Math.round((winsVal / totalVal) * 100) : 0;
+    animateCounter(document.getElementById('statTotal'), totalVal);
+    animateCounter(document.getElementById('statWins'),  winsVal);
+    animateCounter(document.getElementById('statBest'),  bestVal);
+    animateWinRing(wr);
+
+    // Achievements
+    renderAchievements(p.achievements || []);
+
+    // 3. Fetch History
+    const hist = await MathWarDB.getUserHistory(session.uid);
+    renderMatchHistory(hist);
+  });
+
+  function renderMatchHistory(matches) {
+    const list = document.getElementById('matchList');
+    if (!matches || matches.length === 0) {
+      list.innerHTML = '<div class="no-matches">No matches yet. Play your first game! 🎮</div>';
+      return;
+    }
+    const sess   = (typeof MathWarDB !== 'undefined') ? MathWarDB.getSession() : null;
+    const myName = (sess?.username || 'player1').toLowerCase();
+
+    list.innerHTML = matches.map(m => {
+      // Handle BOTH old format (m.winner==='player1') and new format (m.winner===username)
+      const winnerLower = (m.winner || '').toLowerCase();
+      const isWin = winnerLower === myName || winnerLower === 'player1';
+      const isTie = winnerLower === 'tie' || winnerLower === '';
+      const cls   = isWin ? 'win' : (isTie ? 'tie' : 'loss');
+      const icon  = isWin ? '🏆' : (isTie ? '🤝' : '❌');
+      const result= isWin ? 'WIN' : (isTie ? 'TIE' : 'LOSS');
+
+      // Support both old and new field names
+      const p1Score   = m.p1Score  ?? m.player1?.score  ?? m.score1 ?? '?';
+      const p2Score   = m.p2Score  ?? m.player2?.score  ?? m.score2 ?? '?';
+      const p2Name    = m.p2Name   || m.player2?.username || (typeof m.player2 === 'string' ? m.player2 : 'Player 2');
+      const mode      = m.mode     || 'pvp';
+      const diff      = m.aiDifficulty || '';
+      const dur       = m.duration ? m.duration + 's' : '—';
+      const when      = formatRelativeTime(m.playedAt);
+
+      const oppLabel = (mode === 'pvc' || mode === 'blitz' || mode === 'survival')
+        ? 'vs Computer' + (diff ? ' (' + diff + ')' : '')
+        : 'vs ' + p2Name;
+
+      return `
+        <div class="match-card">
+          <div class="match-badge ${cls}" aria-label="${result}">${icon}</div>
+          <div>
+            <div class="match-info-top">${result} · ${oppLabel}</div>
+            <div class="match-info-sub">Score ${p1Score} — ${p2Score} · ${dur} · ${when}</div>
+          </div>
+          <div class="match-score ${cls}">${p1Score}</div>
+        </div>`;
+    }).join('');
+    setTimeout(setupMatchCardObserver, 50);
+  }
+
+  function formatRelativeTime(ts) {
+    if (!ts) return '—';
+    const date = ts.toDate ? ts.toDate() : new Date(ts);
+    const diff = Date.now() - date.getTime();
+    const m = Math.floor(diff / 60000);
+    const h = Math.floor(diff / 3600000);
+    const d = Math.floor(diff / 86400000);
+    if (m < 2)  return 'Just now';
+    if (m < 60) return `${m}m ago`;
+    if (h < 24) return `${h}h ago`;
+    if (d === 1) return 'Yesterday';
+    return `${d} days ago`;
+  }
+
+  /* Avatar picker */
+  function toggleAvatarPicker() {
+    document.getElementById('avatarPicker').classList.toggle('open');
+  }
+
+  async function setAvatar(emoji) {
+    _currentAvatar = emoji;
+    document.getElementById('avatarDisplay').textContent = emoji;
+    document.getElementById('avatarPicker').classList.remove('open');
+    // Mark chosen
+    document.querySelectorAll('.avatar-option').forEach(opt => {
+      opt.classList.toggle('chosen', opt.textContent === emoji);
+    });
+    // Save to MathWarDB
+    const session = MathWarDB.getSession();
+    if (session) {
+      session.avatar = emoji;
+      MathWarDB.setSession(session);
+      const users = MathWarDB.getUsers();
+      if (users[session.uid]) {
+        users[session.uid].avatar = emoji;
+        MathWarDB.saveUser(session.uid, users[session.uid]);
+      }
+    }
+  }
+
+  async function handleLogout() {
+    await MathWarAuth.logout();
+  }
+
+  // P4-T18: Handle data import
+  function handleImport(e) {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const ok = MathWarDB.importData(ev.target.result);
+      if (ok) { alert('Data imported! Reloading...'); location.reload(); }
+      else alert('Import failed. Check file format.');
+    };
+    reader.readAsText(file);
+  }
+
+  /* P5-T21: Animate counter from 0 to target */
+  function animateCounter(el, target, duration=1200) {
+    if (!el) return;
+    let start = null;
+    const step = (ts) => {
+      if (!start) start = ts;
+      const p = Math.min((ts - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(ease * target);
+      if (p < 1) requestAnimationFrame(step);
+      else el.textContent = target;
+    };
+    requestAnimationFrame(step);
+  }
+
+  /* P5-T22: Animate win rate ring SVG */
+  function animateWinRing(pct) {
+    const fill = document.getElementById('winRateFill');
+    const txt  = document.getElementById('statWinPct');
+    if (fill) {
+      const offset = 201 - (pct / 100) * 201;
+      setTimeout(() => { fill.style.strokeDashoffset = offset; }, 300);
+    }
+    if (txt) animateCounter(txt, pct, 1500);
+  }
+
+  /* P5-T22: Render achievement badges */
+  const ACHIEVEMENTS = [
+    { id:'first_win',     icon:'🏆', label:'First Blood' },
+    { id:'speed_demon',   icon:'⚡', label:'Speed Demon' },
+    { id:'perfectionist', icon:'✨', label:'Perfectionist' },
+    { id:'comeback_kid',  icon:'💪', label:'Comeback Kid' },
+    { id:'ten_streak',    icon:'🔥', label:'On Fire!' },
+    { id:'ai_slayer',     icon:'🤖', label:'AI Slayer' },
+    { id:'veteran',       icon:'⚔',  label:'Veteran (50 matches)' },
+    { id:'century',       icon:'💯', label:'Century' },
+    { id:'hat_trick',     icon:'🎩', label:'Hat Trick' },
+    { id:'math_master',   icon:'🧮', label:'Math Master' },
+  ];
+  function renderAchievements(earnedIds=[]) {
+    const grid = document.getElementById('achievementGrid');
+    if (!grid) return;
+    grid.innerHTML = ACHIEVEMENTS.map(a => `
+      <div class="ach-badge ${earnedIds.includes(a.id) ? 'unlocked' : 'locked'}">
+        ${a.icon}
+        <div class="ach-tooltip">${a.label}</div>
+      </div>
+    `).join('');
+  }
+
+  /* P5-T21: Match card slide-in via IntersectionObserver */
+  function setupMatchCardObserver() {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => entry.target.classList.add('visible'), i * 80);
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.match-card').forEach(card => io.observe(card));
+  }
+
+  /* Edit Profile Logic */
+  let _editingProfile = null;
+
+  async function openEditModal() {
+    if (!_currentUid) return;
+    const profile = await MathWarDB.getUserProfile(_currentUid);
+    if (!profile) return;
+    _editingProfile = profile;
+    
+    document.getElementById('editFullName').value = profile.fullName || '';
+    document.getElementById('editUsername').value = profile.username || '';
+    document.getElementById('editEmail').value = profile.email || '';
+    document.getElementById('editAge').value = profile.age || '';
+    document.getElementById('editGender').value = profile.gender || 'not specified';
+    document.getElementById('editPhone').value = profile.phone || '';
+    
+    document.getElementById('editModal').classList.add('open');
+  }
+
+  function closeEditModal() {
+    document.getElementById('editModal').classList.remove('open');
+  }
+
+  async function saveProfile() {
+    if (!_currentUid || !_editingProfile) return;
+    
+    const btn = document.getElementById('saveProfileBtn');
+    btn.textContent = 'Saving...';
+    btn.disabled = true;
+
+    const newName = document.getElementById('editFullName').value.trim();
+    const newUsername = document.getElementById('editUsername').value.trim().toLowerCase();
+    const newAge = parseInt(document.getElementById('editAge').value, 10);
+    const newGender = document.getElementById('editGender').value;
+    const newPhone = document.getElementById('editPhone').value.trim();
+    
+    try {
+      if (!newName || !newUsername) {
+        throw new Error('Name and Username are required.');
+      }
+
+      if (newUsername !== _editingProfile.username.toLowerCase()) {
+        const isAvail = await MathWarDB.checkUsernameAvailable(newUsername);
+        if (!isAvail) throw new Error('Username already taken.');
+      }
+      
+      const updates = {
+        fullName: newName,
+        username: newUsername,
+        age: newAge || _editingProfile.age,
+        gender: newGender,
+        phone: newPhone
+      };
+
+      MathWarDB.saveUser(_currentUid, updates);
+      
+      const session = MathWarDB.getSession();
+      if (session && session.uid === _currentUid) {
+        session.displayName = newName;
+        session.username = newUsername;
+        MathWarDB.setSession(session);
+      }
+
+      document.getElementById('profileName').textContent = newName;
+      document.getElementById('profileMeta').textContent = `@${newUsername} · Age ${updates.age || '—'}`;
+      
+      closeEditModal();
+      
+      const originalText = btn.textContent;
+      btn.textContent = 'Saved!';
+      setTimeout(() => btn.textContent = 'Save Changes', 2000);
+
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      btn.disabled = false;
+      if (btn.textContent === 'Saving...') btn.textContent = 'Save Changes';
+    }
+  }
+
+  try { if (typeof loadPage === 'function') loadPage(); } catch (e) {}
+</script>
+</body>
+</html>

@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>MathWar — Login</title>
+  <!-- PWA (P4-T17) -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#1565C0" />
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(() => console.log('[MathWar] PWA registered'))
+          .catch(err => console.warn('[MathWar] PWA failed:', err));
+      });
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <!-- sql.js moved to body -->
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; min-height: 100vh;
+      background: #04091A;
+      font-family: 'Nunito', sans-serif;
+      color: #fff;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    /* ══ BACKGROUND CANVAS (animated) ══ */
+    #loginBg {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ══ FLOATING MATH SYMBOLS ══ */
+    .math-floaters {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .math-float {
+      position: absolute;
+      font-family: 'Fredoka One', sans-serif;
+      font-size: 2rem;
+      opacity: 0.08;
+      animation: floatUp linear infinite;
+      user-select: none;
+      color: #fff;
+    }
+    @keyframes floatUp {
+      0%   { transform: translateY(110vh) rotate(0deg); opacity: 0; }
+      10%  { opacity: 0.08; }
+      90%  { opacity: 0.08; }
+      100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+    }
+
+    /* ══ MAIN WRAPPER ══ */
+    .login-wrapper {
+      position: relative;
+      z-index: 10;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 30px 16px 50px;
+    }
+
+    /* ══ LOGO AREA ══ */
+    .logo-area {
+      text-align: center;
+      margin-bottom: 28px;
+      animation: logoEntrance 0.8s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes logoEntrance {
+      from { transform: scale(0.3) translateY(-40px); opacity: 0; }
+      to   { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    .logo-rope {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .logo-figure {
+      font-size: 2.2rem;
+      filter: drop-shadow(0 0 10px rgba(66,165,245,0.8));
+      animation: figBob 1.8s ease-in-out infinite alternate;
+    }
+    .logo-figure.red {
+      filter: drop-shadow(0 0 10px rgba(239,83,80,0.8));
+      animation-delay: 0.9s;
+    }
+    @keyframes figBob {
+      from { transform: translateY(0) rotate(-3deg); }
+      to   { transform: translateY(-6px) rotate(3deg); }
+    }
+
+    .logo-rope-line {
+      flex: 1;
+      max-width: 80px;
+      height: 4px;
+      background: linear-gradient(90deg, #1565C0, #8B4513, #C62828);
+      border-radius: 2px;
+      position: relative;
+      animation: ropePull 2s ease-in-out infinite alternate;
+    }
+    @keyframes ropePull {
+      from { transform: scaleX(1); filter: brightness(1); }
+      to   { transform: scaleX(0.9); filter: brightness(1.3); }
+    }
+
+    .logo-title {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(3.2rem, 10vw, 5.5rem);
+      letter-spacing: 8px;
+      line-height: 1;
+      background: linear-gradient(90deg,
+        #64B5F6 0%, #1565C0 45%,
+        #EF5350 55%, #C62828 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 0 24px rgba(66,165,245,0.5))
+              drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+      animation: titlePulse 4s ease-in-out infinite alternate;
+    }
+    @keyframes titlePulse {
+      from { filter: drop-shadow(0 0 16px rgba(66,165,245,0.4)) drop-shadow(0 4px 8px rgba(0,0,0,0.4)); }
+      to   { filter: drop-shadow(0 0 36px rgba(66,165,245,0.8)) drop-shadow(0 0 60px rgba(66,165,245,0.2)) drop-shadow(0 4px 8px rgba(0,0,0,0.4)); }
+    }
+
+    .logo-sub {
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.85rem;
+      letter-spacing: 5px;
+      color: rgba(255,255,255,0.45);
+      text-transform: uppercase;
+      margin-top: 6px;
+    }
+
+    .logo-stars {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      margin-top: 10px;
+    }
+    .logo-star {
+      font-size: 1rem;
+      animation: starTwinkle 1.5s ease infinite alternate;
+    }
+    .logo-star:nth-child(2) { animation-delay: 0.2s; }
+    .logo-star:nth-child(3) { animation-delay: 0.4s; }
+    .logo-star:nth-child(4) { animation-delay: 0.6s; }
+    .logo-star:nth-child(5) { animation-delay: 0.8s; }
+    @keyframes starTwinkle {
+      from { transform: scale(1); opacity: 0.7; }
+      to   { transform: scale(1.2); opacity: 1; }
+    }
+
+    /* ══ 3D CARD FLIP CONTAINER ══ */
+    .card-scene {
+      width: 100%;
+      max-width: 420px;
+      perspective: 1200px;
+    }
+    .card-3d {
+      position: relative;
+      width: 100%;
+      transform-style: preserve-3d;
+      transition: transform 0.65s cubic-bezier(0.34,1.1,0.64,1);
+    }
+    .card-3d.flipped { transform: rotateY(180deg); }
+
+    .card-face {
+      width: 100%;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      /* Show front face by default; back face gets pointer-events:none via JS */
+    }
+    .card-face-back {
+      position: absolute;
+      top: 0; left: 0;
+      transform: rotateY(180deg);
+      /* Hidden by default — pointer-events disabled so front fields remain clickable */
+      pointer-events: none;
+    }
+    /* When card is flipped: back face is interactive, front face is not */
+    .card-3d.flipped .card-face-back { pointer-events: auto; }
+    .card-3d.flipped .card-face:first-child { pointer-events: none; }
+
+    /* ══ AUTH CARD DESIGN — v3.2 with rotating aurora border ══ */
+    .auth-card {
+      background: linear-gradient(145deg,
+        rgba(13, 26, 64, 0.97) 0%,
+        rgba(8, 10, 26, 0.99) 50%,
+        rgba(26, 8, 46, 0.97) 100%);
+      border-radius: 24px;
+      padding: 28px 24px;
+      position: relative;
+      overflow: hidden;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.06),
+        0 40px 80px rgba(0,0,0,0.85),
+        0 0 100px rgba(21,101,192,0.12),
+        inset 0 1px 0 rgba(255,255,255,0.12),
+        inset 0 -1px 0 rgba(0,0,0,0.3);
+    }
+    /* Rotating aurora border (conic-gradient wrapper) */
+    .auth-card::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 26px;
+      background: conic-gradient(
+        #42A5F5 0%,   #7C4DFF 20%, #EF5350 40%,
+        #FF9800 60%,  #42A5F5 80%, #42A5F5 100%
+      );
+      z-index: -1;
+      animation: borderSpinConic 4s linear infinite;
+    }
+    @keyframes borderSpinConic {
+      to { transform: rotate(360deg); }
+    }
+    /* Scanline texture */
+    .auth-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(255,255,255,0.012) 2px,
+        rgba(255,255,255,0.012) 4px
+      );
+      pointer-events: none;
+      border-radius: inherit;
+      z-index: 0;
+    }
+    /* Children above pseudo-elements */
+    .auth-card > * { position: relative; z-index: 1; }
+
+    /* ══ TAB SWITCHER ══ */
+    .tab-switcher {
+      display: flex;
+      background: rgba(0,0,0,0.4);
+      border-radius: 50px;
+      padding: 4px;
+      margin-bottom: 24px;
+      gap: 4px;
+      position: relative;
+      z-index: 1;
+    }
+    .tab-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: rgba(255,255,255,0.45);
+      padding: 10px 16px;
+      border-radius: 40px;
+      font-family: 'Fredoka One', cursive;
+      font-size: 1rem;
+      letter-spacing: 2px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.34,1.4,0.64,1);
+    }
+    .tab-btn.active {
+      color: #fff;
+      transform: scale(1.05);
+    }
+    .tab-btn.active.blue { background: linear-gradient(135deg, #1565C0, #1976D2); box-shadow: 0 4px 16px rgba(21,101,192,0.6); }
+    .tab-btn.active.red  { background: linear-gradient(135deg, #C62828, #D32F2F); box-shadow: 0 4px 16px rgba(198,40,40,0.6); }
+
+    /* ══ SECTION TITLE INSIDE CARD ══ */
+    .card-section-title {
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.5rem;
+      letter-spacing: 2px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ══ FORM ELEMENTS ══ */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 14px;
+      position: relative;
+      z-index: 1;
+    }
+    .form-label {
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.5);
+    }
+    .form-input-wrap { position: relative; }
+    .form-input {
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      border: 1.5px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: #fff;
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, transform 0.15s;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .form-input:focus {
+      border-color: rgba(66,165,245,0.6);
+      background: rgba(66,165,245,0.08);
+      transform: translateZ(6px);
+      box-shadow:
+        inset 0 3px 12px rgba(0,0,0,0.45),
+        0 0 0 2px rgba(66,165,245,0.55),
+        0 0 24px rgba(66,165,245,0.18);
+    }
+    .form-input.invalid {
+      border-color: #EF5350;
+      box-shadow: 0 0 0 3px rgba(239,83,80,0.15);
+    }
+    .form-input.valid {
+      border-color: #4CAF50;
+    }
+    .form-input::placeholder { color: rgba(255,255,255,0.25); }
+    .input-pr { padding-right: 44px; }
+
+    .eye-btn {
+      position: absolute;
+      right: 12px; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none;
+      color: rgba(255,255,255,0.4);
+      font-size: 1.1rem; cursor: pointer;
+      line-height: 1;
+      transition: color 0.15s;
+    }
+    .eye-btn:hover { color: #fff; }
+    .username-check {
+      position: absolute;
+      right: 12px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.1rem;
+    }
+
+    .field-err {
+      font-size: 0.7rem;
+      color: #EF5350;
+      font-weight: 700;
+      min-height: 14px;
+    }
+
+    /* ── Two-col row ── */
+    .form-row-2 {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 10px;
+    }
+
+    /* ── Gender pills ── */
+    .gender-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 2px;
+    }
+    .gender-pill {
+      background: rgba(255,255,255,0.05);
+      border: 1.5px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 9px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.6);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+      user-select: none;
+    }
+    .gender-pill input { display: none; }
+    .gender-pill:has(input:checked) {
+      background: rgba(66,165,245,0.15);
+      border-color: #42A5F5;
+      color: #fff;
+    }
+
+    /* ── Password strength ── */
+    .pass-strength-bar {
+      height: 4px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 3px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+    .pass-strength-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 3px;
+      transition: width 0.3s, background 0.3s;
+    }
+    .pass-strength-text {
+      font-size: 0.68rem;
+      font-weight: 800;
+      text-align: right;
+      margin-top: 3px;
+      display: block;
+    }
+
+    /* ── Remember me ── */
+    .remember-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.55);
+      cursor: pointer;
+      margin-bottom: 4px;
+    }
+    .remember-row input {
+      width: 17px;
+      height: 17px;
+      accent-color: #42A5F5;
+      cursor: pointer;
+    }
+
+    /* ══ ACTION BUTTONS ══ */
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 14px;
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.2rem;
+      letter-spacing: 3px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.1s, filter 0.15s;
+      margin-top: 6px;
+      z-index: 1;
+    }
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      top: -50%; left: -50%;
+      width: 200%; height: 200%;
+      background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%);
+      transform: translateX(-100%);
+      transition: transform 0.5s;
+    }
+    .btn-primary:hover::before { transform: translateX(100%); }
+    .btn-primary:active { transform: scale(0.97) translateY(2px); }
+
+    /* Auth button — gradient + shimmer */
+    .btn-blue {
+      background: linear-gradient(135deg, #1565C0, #7C4DFF) !important;
+      color: white;
+      box-shadow: 0 6px 20px rgba(21,101,192,0.45), inset 0 1px 0 rgba(255,255,255,0.15) !important;
+      border: none !important;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.12s, box-shadow 0.12s !important;
+    }
+    .btn-blue:hover {
+      transform: translateY(-2px) !important;
+      box-shadow: 0 10px 30px rgba(21,101,192,0.6), inset 0 1px 0 rgba(255,255,255,0.2) !important;
+    }
+    .btn-blue:active {
+      transform: translateY(1px) !important;
+      box-shadow: 0 2px 0 #0A2D6B, 0 3px 10px rgba(13,71,161,0.4) !important;
+    }
+    .btn-blue::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%; width: 60%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+      transform: skewX(-20deg);
+      transition: left 0.5s;
+    }
+    .btn-blue:hover::after { left: 150%; }
+
+    .btn-red {
+      background: linear-gradient(135deg, #D32F2F, #B71C1C);
+      color: white;
+      box-shadow: 0 6px 0 #7B0000, 0 8px 20px rgba(183,28,28,0.5);
+    }
+    .btn-red:active { box-shadow: 0 2px 0 #7B0000, 0 3px 10px rgba(183,28,28,0.4); }
+
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* ── Google button ── */
+    .btn-google {
+      width: 100%;
+      padding: 12px;
+      background: #FFFFFF;
+      border: none;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: 0.95rem;
+      color: #1a1a1a;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+      box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+    }
+    .btn-google:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,0.2); }
+    .google-g {
+      width: 22px; height: 22px;
+      background: conic-gradient(#EA4335 90deg, #FBBC05 90deg 180deg, #34A853 180deg 270deg, #4285F4 270deg);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ── OR divider ── */
+    .or-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 12px 0;
+    }
+    .or-line::before, .or-line::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255,255,255,0.1);
+    }
+    .or-line span {
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 2px;
+    }
+
+    /* ── Forgot link ── */
+    .forgot-link {
+      text-align: center;
+      margin-top: 14px;
+    }
+    .forgot-link a {
+      color: rgba(255,255,255,0.4);
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .forgot-link a:hover { color: #42A5F5; }
+
+    /* ══ TOAST ══ */
+    #toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #1E293B;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 40px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      z-index: 9999;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+      transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), opacity 0.35s;
+      opacity: 0;
+      pointer-events: none;
+      white-space: nowrap;
+      max-width: 90vw;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    #toast.success { background: linear-gradient(135deg, #2E7D32, #1B5E20); border-left: 4px solid #4CAF50; }
+    #toast.error   { background: linear-gradient(135deg, #B71C1C, #7B0000); border-left: 4px solid #EF5350; }
+
+    /* ══ FOOTER CREDIT ══ */
+    .login-footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.2);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    /* ══ SIGN UP CARD — full scroll with visible submit button ══ */
+    .card-face-back .auth-card {
+      /* Allow card to grow tall enough for the form, with its own scroll */
+      display: flex;
+      flex-direction: column;
+      max-height: 80vh;
+    }
+    .signup-scroll {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-right: 6px;
+      /* Ensure scrollbar doesn't cut content */
+      padding-bottom: 4px;
+    }
+    .signup-scroll::-webkit-scrollbar { width: 4px; }
+    .signup-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 4px; }
+    .signup-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+
+    /* Signup submit button — always visible outside the scroll area */
+    .signup-submit-wrap {
+      padding-top: 12px;
+      flex-shrink: 0;
+    }
+
+    /* ══ RESPONSIVE ══ */
+    @media (max-width: 480px) {
+      .login-wrapper { padding: 16px 12px 40px; }
+      .logo-title { font-size: 2.4rem; letter-spacing: 4px; }
+      .auth-card { padding: 20px 16px; border-radius: 20px; }
+      .form-row-2 { grid-template-columns: 1fr; }
+      .tab-btn { font-size: 0.85rem; letter-spacing: 1px; }
+      .card-face-back .auth-card { max-height: 75vh; }
+    }
+
+    /* P5-T20: 3D tilt effect on auth card */
+    .card-scene { perspective: 1200px; }
+    .auth-card {
+      transform-style: preserve-3d;
+      transition: transform 0.1s ease;
+      will-change: transform;
+    }
+
+    /* ── Hero Badges (replaced logo-stats) ── */
+    .hero-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 12px;
+      margin-bottom: 8px;
+    }
+    .hero-badge {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.75);
+      letter-spacing: 0.5px;
+      backdrop-filter: blur(4px);
+      transition: border-color 0.2s, background 0.2s;
+      animation: badgePulseIn 0.5s ease backwards;
+    }
+    .hero-badge:nth-child(1) { animation-delay: 0.1s; border-color: rgba(66,165,245,0.4); }
+    .hero-badge:nth-child(2) { animation-delay: 0.2s; border-color: rgba(239,83,80,0.4); }
+    .hero-badge:nth-child(3) { animation-delay: 0.3s; border-color: rgba(124,77,255,0.4); }
+    .hero-badge:nth-child(4) { animation-delay: 0.4s; border-color: rgba(102,187,106,0.4); }
+    .hero-badge:hover {
+      background: rgba(255,255,255,0.12);
+      border-color: rgba(255,255,255,0.35);
+    }
+    @keyframes badgePulseIn {
+      from { opacity: 0; transform: scale(0.8) translateY(10px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .hero-tagline {
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 1.5px;
+      text-align: center;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+    /* Holographic active tab underline */
+    .tab-btn {
+      position: relative;
+      overflow: hidden;
+    }
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #42A5F5, #7C4DFF, #42A5F5);
+      animation: tabGlow 2s ease infinite;
+    }
+    @keyframes tabGlow {
+      0%,100% { opacity: 0.7; }
+      50%     { opacity: 1; }
+    }
+    /* Cursor trail */
+    @keyframes trailFade {
+      from { transform: translate(-50%,-50%) scale(1); opacity: 0.6; }
+      to   { transform: translate(-50%,-50%) scale(0); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ANIMATED BACKGROUND CANVAS -->
+<canvas id="loginBg"></canvas>
+
+<!-- FLOATING MATH SYMBOLS -->
+<div class="math-floaters" id="mathFloaters"></div>
+
+<!-- MAIN WRAPPER -->
+<div class="login-wrapper">
+
+  <!-- LOGO -->
+  <div class="logo-area">
+    <div class="logo-rope">
+      <div class="logo-figure">🏃</div>
+      <div class="logo-rope-line"></div>
+      <div class="logo-figure red">🏃</div>
+    </div>
+    <div class="logo-title">MATHWAR</div>
+    <div class="logo-sub">Tug of War · Math Edition</div>
+    <!-- Feature Badges (replaces stats + stars) -->
+    <div class="hero-badges">
+      <div class="hero-badge">⚡ Blitz Mode</div>
+      <div class="hero-badge">🤖 AI Opponent</div>
+      <div class="hero-badge">🎯 4 Game Modes</div>
+      <div class="hero-badge">📊 Live Stats</div>
+    </div>
+    <div class="hero-tagline">Battle your friends · Beat the AI · Master Math</div>
+  </div>
+
+  <!-- 3D CARD FLIP SCENE -->
+  <div class="card-scene">
+
+    <!-- TAB SWITCHER — controls flip -->
+    <div class="tab-switcher">
+      <button class="tab-btn active blue" id="tabSignIn" onclick="gotoSignIn()">⚔ SIGN IN</button>
+      <button class="tab-btn red" id="tabSignUp" onclick="gotoSignUp()">🎮 SIGN UP</button>
+    </div>
+
+    <div class="card-3d" id="card3d">
+
+      <!-- ── FRONT: SIGN IN ── -->
+      <div class="card-face">
+        <div class="auth-card">
+          <div class="card-section-title">
+            <span>👋</span> Welcome Back!
+          </div>
+          <form id="signinForm" novalidate onsubmit="handleSignIn(event)">
+            <div class="form-group">
+              <div class="form-label">Email or Username</div>
+              <div class="form-input-wrap">
+                <input class="form-input" type="text" id="siEmail" placeholder="Enter your username or email" autocomplete="username" />
+              </div>
+              <div class="field-err" id="siEmailErr"></div>
+            </div>
+            <div class="form-group">
+              <div class="form-label">Password</div>
+              <div class="form-input-wrap">
+                <input class="form-input input-pr" type="password" id="siPassword" placeholder="Your secret password" autocomplete="current-password" />
+                <button type="button" class="eye-btn" onclick="togglePass('siPassword')">👁</button>
+              </div>
+              <div class="field-err" id="siPassErr"></div>
+            </div>
+            <label class="remember-row">
+              <input type="checkbox" id="rememberMe" /> Remember me for 30 days
+            </label>
+            <button type="submit" class="btn-primary btn-blue" id="signinBtn">
+              ▶ PLAY NOW
+            </button>
+            <div class="or-line"><span>OR</span></div>
+            <!-- Container for the OFFICIAL Google Sign In Button -->
+            <div id="googleButtonContainer" style="display:flex; justify-content:center; width:100%; margin-top:8px;"></div>
+            <div class="forgot-link">
+              <a href="#" onclick="handleForgotPassword(); return false;">Forgot Password?</a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- ── BACK: SIGN UP ── -->
+      <div class="card-face card-face-back">
+        <div class="auth-card">
+          <div class="card-section-title">
+            <span>🚀</span> Join the Battle!
+          </div>
+          <!-- form wraps both scroll area AND submit button -->
+          <form id="signupForm" novalidate onsubmit="handleSignUp(event)" style="display:flex;flex-direction:column;flex:1;min-height:0;">
+            <!-- Scrollable fields -->
+            <div class="signup-scroll" id="signupScroll">
+              <div class="form-row-2">
+                <div class="form-group">
+                  <div class="form-label">Full Name *</div>
+                  <input class="form-input" type="text" id="suName" placeholder="Your name" autocomplete="name" />
+                  <div class="field-err" id="suNameErr"></div>
+                </div>
+                <div class="form-group">
+                  <div class="form-label">Age *</div>
+                  <input class="form-input" type="number" id="suAge" placeholder="Age" min="6" max="99" />
+                  <div class="field-err" id="suAgeErr"></div>
+                </div>
+              </div>
+              <div class="form-group">
+                <div class="form-label">Email *</div>
+                <input class="form-input" type="email" id="suEmail" placeholder="your@email.com" autocomplete="email" />
+                <div class="field-err" id="suEmailErr"></div>
+              </div>
+              <div class="form-group">
+                <div class="form-label">Phone <span style="opacity:.45;font-size:.7rem">(optional)</span></div>
+                <input class="form-input" type="tel" id="suPhone" placeholder="+91 XXXXX XXXXX" />
+                <div class="field-err" id="suPhoneErr"></div>
+              </div>
+              <div class="form-group">
+                <div class="form-label">Gender *</div>
+                <div class="gender-grid">
+                  <label class="gender-pill">
+                    <input type="radio" name="gender" value="Male" /> 👦 Male
+                  </label>
+                  <label class="gender-pill">
+                    <input type="radio" name="gender" value="Female" /> 👧 Female
+                  </label>
+                  <label class="gender-pill">
+                    <input type="radio" name="gender" value="Other" /> 🌈 Other
+                  </label>
+                  <label class="gender-pill">
+                    <input type="radio" name="gender" value="Prefer not to say" checked /> 🤐 Skip
+                  </label>
+                </div>
+                <div class="field-err" id="suGenderErr"></div>
+              </div>
+              <div class="form-group">
+                <div class="form-label">Username *</div>
+                <div class="form-input-wrap">
+                  <input class="form-input input-pr" type="text" id="suUsername"
+                    placeholder="e.g. mathking_254" autocomplete="off"
+                    oninput="debounceCheckUsername(this.value)" />
+                  <span class="username-check" id="usernameStatus"></span>
+                </div>
+                <div class="field-err" id="suUsernameErr"></div>
+              </div>
+              <div class="form-group">
+                <div class="form-label">Password *</div>
+                <div class="form-input-wrap">
+                  <input class="form-input input-pr" type="password" id="suPassword"
+                    placeholder="Min 8 chars, 1 uppercase, 1 number"
+                    autocomplete="new-password" oninput="updateStrength(this.value)" />
+                  <button type="button" class="eye-btn" onclick="togglePass('suPassword')">👁</button>
+                </div>
+                <div class="pass-strength-bar"><div class="pass-strength-fill" id="strengthFill"></div></div>
+                <span class="pass-strength-text" id="strengthLabel"></span>
+                <div class="field-err" id="suPassErr"></div>
+              </div>
+              <div class="form-group">
+                <div class="form-label">Confirm Password *</div>
+                <div class="form-input-wrap">
+                  <input class="form-input input-pr" type="password" id="suConfirm"
+                    placeholder="Repeat password" autocomplete="new-password" />
+                  <button type="button" class="eye-btn" onclick="togglePass('suConfirm')">👁</button>
+                </div>
+                <div class="field-err" id="suConfirmErr"></div>
+              </div>
+            </div><!-- /.signup-scroll -->
+
+            <!-- Submit button PINNED below the scroll — always visible -->
+            <div class="signup-submit-wrap">
+              <button type="submit" class="btn-primary btn-red" id="signupBtn">
+                ⚔ CREATE ACCOUNT
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div><!-- /.card-3d -->
+  </div><!-- /.card-scene -->
+
+  <div class="login-footer">
+    © 2026 MathWar · All Rights Reserved
+  </div>
+
+</div><!-- /.login-wrapper -->
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- Google Identity Services Script -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script src="db.js?v=8"></script>
+<script src="auth.js?v=8"></script>
+<script>
+/* ════════════════════════════════════════════════════════════
+   LOGIN PAGE SCRIPTS — MathWar v3
+   ════════════════════════════════════════════════════════════ */
+
+/* ── Animated Canvas Background ── */
+(function() {
+  const canvas = document.getElementById('loginBg');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles = [], ropes = [];
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  /* Rope segments swinging */
+  class RopeAnim {
+    constructor() {
+      this.x1 = Math.random() * W * 0.4;
+      this.y1 = Math.random() * H * 0.3;
+      this.x2 = this.x1 + 80 + Math.random() * 120;
+      this.y2 = this.y1 + Math.random() * 40;
+      this.phase = Math.random() * Math.PI * 2;
+      this.speed = 0.008 + Math.random() * 0.006;
+      this.alpha = 0.06 + Math.random() * 0.08;
+      this.team  = Math.random() > 0.5 ? 'blue' : 'red';
+    }
+    draw(t) {
+      const sag = 20 + Math.sin(t * this.speed + this.phase) * 10;
+      const mx = (this.x1 + this.x2) / 2;
+      const my = (this.y1 + this.y2) / 2 + sag;
+      ctx.beginPath();
+      ctx.moveTo(this.x1, this.y1);
+      ctx.quadraticCurveTo(mx, my, this.x2, this.y2);
+      ctx.strokeStyle = this.team === 'blue'
+        ? `rgba(66,165,245,${this.alpha})`
+        : `rgba(239,83,80,${this.alpha})`;
+      ctx.lineWidth = 1.5 + Math.sin(t * 0.02) * 0.5;
+      ctx.stroke();
+    }
+  }
+
+  /* Floating particles */
+  class LoginParticle {
+    constructor() { this.reset(); this.y = Math.random() * H; }
+    reset() {
+      this.x = Math.random() * W;
+      this.y = H + 10;
+      this.vx = (Math.random() - 0.5) * 0.4;
+      this.vy = -(0.3 + Math.random() * 0.5);
+      this.alpha = 0.05 + Math.random() * 0.12;
+      this.size  = 1 + Math.random() * 2.5;
+      this.color = Math.random() > 0.5 ? '66,165,245' : '239,83,80';
+    }
+    update() {
+      this.x += this.vx; this.y += this.vy;
+      if (this.y < -10) this.reset();
+    }
+    draw() {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${this.color},${this.alpha})`;
+      ctx.fill();
+    }
+  }
+
+  /* Initialize */
+  for (let i = 0; i < 12; i++) ropes.push(new RopeAnim());
+  for (let i = 0; i < 60; i++) particles.push(new LoginParticle());
+
+  let t = 0;
+  function frame() {
+    ctx.clearRect(0, 0, W, H);
+
+    /* Deep space gradient */
+    const bg = ctx.createRadialGradient(W*0.5, H*0.4, 0, W*0.5, H*0.5, W*0.8);
+    bg.addColorStop(0, 'rgba(14,22,50,0.95)');
+    bg.addColorStop(0.5, 'rgba(7,12,30,0.95)');
+    bg.addColorStop(1, 'rgba(4,6,20,0.98)');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    /* Left blue aurora */
+    const aL = ctx.createRadialGradient(0, H*0.4, 0, 0, H*0.4, W*0.5);
+    aL.addColorStop(0, `rgba(21,101,192,${0.12 + Math.sin(t*0.015)*0.04})`);
+    aL.addColorStop(1, 'transparent');
+    ctx.fillStyle = aL; ctx.fillRect(0,0,W,H);
+
+    /* Right red aurora */
+    const aR = ctx.createRadialGradient(W, H*0.6, 0, W, H*0.6, W*0.5);
+    aR.addColorStop(0, `rgba(198,40,40,${0.10 + Math.cos(t*0.012)*0.04})`);
+    aR.addColorStop(1, 'transparent');
+    ctx.fillStyle = aR; ctx.fillRect(0,0,W,H);
+
+    ropes.forEach(r => r.draw(t));
+    particles.forEach(p => { p.update(); p.draw(); });
+
+    t++;
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+
+/* ── Floating Math Symbols ── */
+(function() {
+  const symbols = ['+','−','×','÷','=','?','²','√','∞','!','%','<','>'];
+  const container = document.getElementById('mathFloaters');
+  for (let i = 0; i < 20; i++) {
+    const el = document.createElement('div');
+    el.className = 'math-float';
+    el.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+    el.style.left = Math.random() * 100 + '%';
+    el.style.fontSize = (1.2 + Math.random() * 2) + 'rem';
+    el.style.animationDuration = (8 + Math.random() * 12) + 's';
+    el.style.animationDelay = (-Math.random() * 15) + 's';
+    container.appendChild(el);
+  }
+})();
+
+/* ── Tab / Card Flip ── */
+function gotoSignIn() {
+  document.getElementById('card3d').classList.remove('flipped');
+  document.getElementById('tabSignIn').classList.add('active','blue');
+  document.getElementById('tabSignUp').classList.remove('active','red');
+  clearAllErrors();
+}
+function gotoSignUp() {
+  document.getElementById('card3d').classList.add('flipped');
+  document.getElementById('tabSignUp').classList.add('active','red');
+  document.getElementById('tabSignIn').classList.remove('active','blue');
+  clearAllErrors();
+}
+
+/* ── Helpers ── */
+function togglePass(id) {
+  const el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+let _toastTimer;
+function showToast(msg, type = 'info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = type;
+  t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { t.classList.remove('show'); }, 3200);
+}
+
+function setErr(id, msg) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = msg;
+}
+function clearErr(id) { setErr(id, ''); }
+function clearAllErrors() {
+  ['siEmailErr','siPassErr','suNameErr','suAgeErr','suEmailErr',
+   'suPhoneErr','suGenderErr','suUsernameErr','suPassErr','suConfirmErr']
+  .forEach(clearErr);
+}
+function setInputState(id, state) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('valid','invalid');
+  if (state) el.classList.add(state);
+}
+function setLoading(btnId, loading) {
+  const b = document.getElementById(btnId);
+  if (!b) return;
+  b.disabled = loading;
+  b.style.opacity = loading ? '0.6' : '';
+}
+
+/* ── Password Strength ── */
+function updateStrength(val) {
+  const fill = document.getElementById('strengthFill');
+  const label = document.getElementById('strengthLabel');
+  let score = 0;
+  if (val.length >= 8)           score++;
+  if (/[A-Z]/.test(val))         score++;
+  if (/[0-9]/.test(val))         score++;
+  if (/[^A-Za-z0-9]/.test(val))  score++;
+  const cfg = [
+    { w:'0%',   bg:'transparent', l:'',              c:'transparent' },
+    { w:'25%',  bg:'#EF5350',     l:'⚠ Weak',        c:'#EF5350' },
+    { w:'50%',  bg:'#FF9800',     l:'👍 Fair',        c:'#FF9800' },
+    { w:'75%',  bg:'#66BB6A',     l:'💪 Strong',      c:'#66BB6A' },
+    { w:'100%', bg:'#4CAF50',     l:'🔥 Very Strong!', c:'#4CAF50' },
+  ];
+  const c = cfg[score];
+  if (fill) { fill.style.width = c.w; fill.style.background = c.bg; }
+  if (label){ label.textContent = c.l; label.style.color = c.c; }
+}
+
+/* ── Username check (debounced) ── */
+let _unTimer;
+function debounceCheckUsername(val) {
+  const status = document.getElementById('usernameStatus');
+  clearTimeout(_unTimer);
+  if (!val || val.length < 3) { if(status) status.textContent = ''; return; }
+  if(status) status.textContent = '⏳';
+  _unTimer = setTimeout(async () => {
+    try {
+      await MathWarDB.init();
+      const avail = await MathWarDB.checkUsernameAvailable(val);
+      if(status) status.textContent = avail ? '✅' : '❌';
+      setInputState('suUsername', avail ? 'valid' : 'invalid');
+      setErr('suUsernameErr', avail ? '' : 'Username taken — try another!');
+    } catch(_) { if(status) status.textContent = ''; }
+  }, 500);
+}
+
+/* ── SIGN IN ── */
+async function handleSignIn(e) {
+  e.preventDefault();
+  clearAllErrors();
+  const id  = document.getElementById('siEmail').value.trim();
+  const pw  = document.getElementById('siPassword').value;
+  let ok = true;
+  if (!id) { setErr('siEmailErr','Required!'); ok = false; }
+  if (!pw) { setErr('siPassErr','Required!'); ok = false; }
+  if (!ok) return;
+
+  setLoading('signinBtn', true);
+  try {
+    await MathWarDB.init();
+    await MathWarAuth.signIn(id, pw);
+    showToast('Welcome back! Entering arena... ⚔', 'success');
+    setTimeout(() => { window.location.href = 'index.html'; }, 900);
+  } catch(err) {
+    const m = err.message || 'Sign in failed';
+    if (m.toLowerCase().includes('password') || m.toLowerCase().includes('credential')) {
+      setErr('siPassErr', '❌ Wrong password. Try again!');
+      setInputState('siPassword', 'invalid');
+    } else if (m.toLowerCase().includes('not found') || m.toLowerCase().includes('account')) {
+      setErr('siEmailErr', '❌ Account not found!');
+      setInputState('siEmail', 'invalid');
+    } else {
+      showToast('❌ ' + m, 'error');
+    }
+  } finally { setLoading('signinBtn', false); }
+}
+
+/* ── SIGN UP ── */
+async function handleSignUp(e) {
+  e.preventDefault();
+  clearAllErrors();
+  const fullName = document.getElementById('suName').value.trim();
+  const age      = document.getElementById('suAge').value;
+  const email    = document.getElementById('suEmail').value.trim();
+  const phone    = document.getElementById('suPhone').value.trim();
+  const gender   = document.querySelector('input[name="gender"]:checked')?.value || '';
+  const username = document.getElementById('suUsername').value.trim();
+  const password = document.getElementById('suPassword').value;
+  const confirm  = document.getElementById('suConfirm').value;
+
+  let ok = true;
+  if (!fullName || fullName.length < 2)           { setErr('suNameErr','Min 2 letters!'); ok=false; }
+  if (!age || age < 6 || age > 99)               { setErr('suAgeErr','Age 6–99!'); ok=false; }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setErr('suEmailErr','Valid email please!'); ok=false; }
+  if (phone && !/^(\+91|0)?[6-9]\d{9}$/.test(phone.replace(/\s/g,''))) { setErr('suPhoneErr','Invalid phone!'); ok=false; }
+  if (!username || username.length < 3 || username.length > 20 || !/^[a-zA-Z0-9_]+$/.test(username)) {
+    setErr('suUsernameErr','3–20 chars, letters/numbers/_ only!'); ok=false;
+  }
+  if (!password || password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
+    setErr('suPassErr','Min 8 chars, 1 UPPERCASE, 1 number!'); ok=false;
+  }
+  if (password !== confirm) { setErr('suConfirmErr',"Passwords don't match!"); ok=false; }
+  if (!ok) {
+    showToast('❌ Please complete all required fields correctly!', 'error');
+    return;
+  }
+
+  setLoading('signupBtn', true);
+  try {
+    await MathWarDB.init();
+    await MathWarAuth.signUp({ fullName, email, phone, gender, age: Number(age), username, password });
+    showToast('Account created! Welcome to MathWar 🎉', 'success');
+    setTimeout(() => { window.location.href = 'index.html'; }, 1000);
+  } catch(err) {
+    const m = err.message || 'Sign up failed';
+    showToast('❌ ' + m, 'error'); // Inform user with a highly visible toast
+    if (m.toLowerCase().includes('email'))    setErr('suEmailErr', '❌ ' + m);
+    else if (m.toLowerCase().includes('username')) setErr('suUsernameErr', '❌ ' + m);
+  } finally { setLoading('signupBtn', false); }
+}
+
+/* ── GOOGLE IDENTITY SERVICES OVERRIDE ── */
+// Because Google OAuth requires you (the project owner) to generate a "Client ID" from the Google Cloud Console,
+// we setup the official logic here. When you replace 'YOUR_GOOGLE_CLIENT_ID_HERE' with a real one, it fully works.
+const GOOGLE_CLIENT_ID = '569677309847-96cj0a9cu0akk79lam9ehg2k2nft9hvt.apps.googleusercontent.com';
+
+window.onload = function () {
+  // If the developer sets a real Client ID, render the official Google button
+  if (GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_ID.includes('YOUR_GOOGLE')) {
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: async (response) => {
+        try {
+          // Process real Google JWT via auth.js
+          await MathWarAuth.handleGoogleResponse(response);
+          showToast('Signed in with Google! ⚔', 'success');
+          setTimeout(() => { window.location.href = 'index.html'; }, 800);
+        } catch(err) {
+          showToast('❌ Google Sign-In processing failed', 'error');
+        }
+      }
+    });
+    // This renders the verified blue/white Google standard UX button we placed in #googleButtonContainer
+    google.accounts.id.renderButton(
+      document.getElementById("googleButtonContainer"),
+      { theme: "outline", size: "large", width: 400, shape: "pill" }  // Matches your platform styling
+    );
+  } else {
+    // If no client ID is provided yet, render a fallback simulated button so the UI doesn't look broken
+    document.getElementById("googleButtonContainer").innerHTML = `
+      <button type="button" class="google-btn" onclick="handleGoogleSignIn()" style="width:100%">
+        <div class="google-g" style="width:20px;height:20px;background:conic-gradient(from -45deg,#ea4335 110deg,#4285f4 90deg 180deg,#34a853 180deg 270deg,#fbbc05 270deg) 73% 55%/150% 150% no-repeat;border-radius:50%; margin-right:8px;"></div>
+        Continue with Google
+      </button>
+    `;
+  }
+};
+
+/* ── GOOGLE (simulated fallback) ── */
+async function handleGoogleSignIn() {
+  try {
+    // If they click the simulated button, remind them
+    const pmt = prompt("Google Auth Simulation Mode:\\nYou need to configure your real Google Client ID in the code.\\n\\nEnter any Gmail address to simulate a login:");
+    if (!pmt || !pmt.includes('@gmail.com')) throw new Error("Cancelled or invalid email.");
+    
+    await MathWarDB.init();
+    // Simulate getting the email and auto-creating
+    let user = MathWarDB.getUserByUsernameOrEmail(pmt.trim());
+    if (!user) {
+      const gName = pmt.split('@')[0];
+      const uid = 'google_' + Math.random().toString(36).substr(2, 9);
+      user = {
+        uid, fullName: gName, email: pmt.trim(), phone: '', gender: 'not specified', age: 18,
+        username: gName + Math.floor(Math.random()*99), avatar: '🤖', password: 'google_oauth_no_pass',
+        createdAt: new Date().toISOString(), lastLogin: new Date().toISOString(),
+        totalMatches:0, wins:0, losses:0, winRate:0, bestScore:0
+      };
+      MathWarDB.saveUser(uid, user);
+    }
+    MathWarDB.setSession({ uid: user.uid, displayName: user.fullName, username: user.username, email: user.email, avatar: user.avatar });
+    showToast('Signed in with Google! ⚔', 'success');
+    setTimeout(() => { window.location.href = 'index.html'; }, 800);
+  } catch(err) {
+    showToast('❌ ' + (err.message || 'Google sign-in failed'), 'error');
+  }
+}
+
+/* ── FORGOT PASSWORD ── */
+async function handleForgotPassword() {
+  const email = document.getElementById('siEmail')?.value?.trim();
+  if (!email || !email.includes('@')) {
+    showToast('Enter your email above first!', 'error'); return;
+  }
+  try {
+    await MathWarDB.init();
+    await MathWarAuth.sendPasswordReset(email);
+    showToast('Reset link sent! Check your inbox 📧', 'success');
+  } catch(err) {
+    showToast('❌ ' + (err.message || 'Reset failed'), 'error');
+  }
+}
+</script>
+
+<!-- P5-T19: Three.js 3D rotating cubes background -->
+<canvas id="loginBg3D" style="position:fixed;top:0;left:0;
+  width:100%;height:100%;z-index:0;pointer-events:none;opacity:0.18;"></canvas>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function initMathArena3D() {
+  const canvas = document.getElementById('loginBg3D');
+  if (!canvas || typeof THREE === 'undefined') return;
+
+  // ── Renderer ─────────────────────────────────────────
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setClearColor(0x000000, 0);
+
+  const scene  = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 0.1, 120);
+  camera.position.set(0, 1, 9);
+
+  // ── Lighting ───────────────────────────────────────
+  scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+  const blueLight = new THREE.PointLight(0x1565C0, 5, 30);
+  blueLight.position.set(-6, 4, 5);
+  scene.add(blueLight);
+  const redLight = new THREE.PointLight(0xC62828, 4, 25);
+  redLight.position.set(6, -3, 4);
+  scene.add(redLight);
+  const goldLight = new THREE.PointLight(0xFFD700, 2, 20);
+  goldLight.position.set(0, 6, 3);
+  scene.add(goldLight);
+
+  // ── Floating Math Symbol Rings (Torus) ──────────────────
+  const symbols = [];
+  const torusColors = [0x1565C0, 0xC62828, 0x7B1FA2, 0xF57F17, 0x1B5E20, 0x0277BD];
+  for (let i = 0; i < 10; i++) {
+    const geo = new THREE.TorusGeometry(
+      0.4 + Math.random() * 0.5,
+      0.06 + Math.random() * 0.06,
+      8, 24
+    );
+    const mat = new THREE.MeshPhongMaterial({
+      color: torusColors[i % torusColors.length],
+      transparent: true,
+      opacity: 0.55 + Math.random() * 0.25,
+      shininess: 120,
+      emissive: torusColors[i % torusColors.length],
+      emissiveIntensity: 0.1
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(
+      (Math.random() - 0.5) * 22,
+      (Math.random() - 0.5) * 13,
+      -2 + (Math.random() - 0.5) * 6
+    );
+    mesh.rotation.set(
+      Math.random() * Math.PI * 2,
+      Math.random() * Math.PI * 2,
+      Math.random() * Math.PI * 2
+    );
+    mesh._rx = (Math.random() - 0.5) * 0.006;
+    mesh._ry = (Math.random() - 0.5) * 0.010;
+    mesh._vx = (Math.random() - 0.5) * 0.004;
+    mesh._vy = (Math.random() - 0.5) * 0.003;
+    scene.add(mesh);
+    symbols.push(mesh);
+  }
+
+  // ── Icosahedra (Math/Battle theme) ──────────────────────
+  const icoMeshes = [];
+  for (let i = 0; i < 8; i++) {
+    const geo = new THREE.IcosahedronGeometry(0.25 + Math.random() * 0.3, 0);
+    const mat = new THREE.MeshPhongMaterial({
+      color: torusColors[(i + 2) % torusColors.length],
+      transparent: true,
+      opacity: 0.35 + Math.random() * 0.3,
+      wireframe: Math.random() > 0.5,
+      shininess: 80
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(
+      (Math.random() - 0.5) * 18,
+      (Math.random() - 0.5) * 11,
+      -4 + (Math.random() - 0.5) * 4
+    );
+    mesh._rx = (Math.random() - 0.5) * 0.009;
+    mesh._ry = (Math.random() - 0.5) * 0.012;
+    mesh._vx = (Math.random() - 0.5) * 0.003;
+    mesh._vy = (Math.random() - 0.5) * 0.002;
+    scene.add(mesh);
+    icoMeshes.push(mesh);
+  }
+
+  // ── Central Rope Visual ───────────────────────────────
+  const ropePoints = [];
+  for (let i = 0; i <= 40; i++) {
+    const t = i / 40;
+    ropePoints.push(new THREE.Vector3(
+      -9 + t * 18,
+      -0.8 + Math.sin(t * Math.PI * 2) * 0.3,
+      -3
+    ));
+  }
+  const ropeCurve = new THREE.CatmullRomCurve3(ropePoints);
+  const ropeGeo   = new THREE.TubeGeometry(ropeCurve, 40, 0.025, 6, false);
+  const ropeMat   = new THREE.MeshPhongMaterial({
+    color: 0x8D6E63, transparent: true, opacity: 0.45, shininess: 60
+  });
+  scene.add(new THREE.Mesh(ropeGeo, ropeMat));
+
+  // ── Small particle field ────────────────────────────────
+  const N = 200;
+  const pPos = new Float32Array(N * 3);
+  const pCol = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) {
+    const x = (Math.random() - 0.5) * 24;
+    pPos[i*3]   = x;
+    pPos[i*3+1] = (Math.random() - 0.5) * 14;
+    pPos[i*3+2] = -6 + (Math.random() - 0.5) * 4;
+    if (x < -1) { pCol[i*3]=0.1; pCol[i*3+1]=0.35; pCol[i*3+2]=0.8; }
+    else if (x > 1) { pCol[i*3]=0.8; pCol[i*3+1]=0.15; pCol[i*3+2]=0.1; }
+    else { pCol[i*3]=pCol[i*3+1]=pCol[i*3+2]=0.9; }
+  }
+  const pGeo = new THREE.BufferGeometry();
+  pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+  pGeo.setAttribute('color',    new THREE.BufferAttribute(pCol, 3));
+  const pMat = new THREE.PointsMaterial({
+    size: 0.04, vertexColors: true, transparent: true,
+    opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false
+  });
+  scene.add(new THREE.Points(pGeo, pMat));
+
+  // ── Animation ─────────────────────────────────────────
+  let t = 0;
+  function tick() {
+    requestAnimationFrame(tick);
+    t += 0.005;
+    // Animate torus rings
+    symbols.forEach((m, i) => {
+      m.rotation.x += m._rx;
+      m.rotation.y += m._ry;
+      m.position.x += m._vx;
+      m.position.y += m._vy + Math.sin(t * 0.8 + i * 0.6) * 0.0005;
+      if (m.position.x >  12) m.position.x = -12;
+      if (m.position.x < -12) m.position.x =  12;
+      if (m.position.y >   7) m.position.y =  -7;
+      if (m.position.y <  -7) m.position.y =   7;
+    });
+    // Animate icosahedra
+    icoMeshes.forEach((m, i) => {
+      m.rotation.x += m._rx;
+      m.rotation.y += m._ry;
+      m.position.x += m._vx;
+      m.position.y += m._vy + Math.cos(t + i * 0.8) * 0.0004;
+      if (m.position.x >  10) m.position.x = -10;
+      if (m.position.x < -10) m.position.x =  10;
+      if (m.position.y >   6) m.position.y =  -6;
+      if (m.position.y <  -6) m.position.y =   6;
+    });
+    // Animate lights for dynamic atmosphere
+    blueLight.position.x = Math.sin(t * 0.5) * 8;
+    blueLight.position.y = Math.cos(t * 0.3) * 5;
+    redLight.position.x  = Math.cos(t * 0.4) * 7;
+    redLight.position.y  = Math.sin(t * 0.6) * 4;
+    renderer.render(scene, camera);
+  }
+  tick();
+
+  window.addEventListener('resize', () => {
+    renderer.setSize(innerWidth, innerHeight);
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+  });
+})();
+
+// P5-T20: 3D Mouse Tilt on auth cards
+document.querySelectorAll('.auth-card').forEach(card => {
+  card.addEventListener('mousemove', (e) => {
+    const rect = card.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = (e.clientX - cx) / (rect.width / 2);
+    const dy = (e.clientY - cy) / (rect.height / 2);
+    card.style.transform = `perspective(1200px) rotateX(${-dy * 6}deg) rotateY(${dx * 6}deg) translateZ(4px)`;
+  });
+  card.addEventListener('mouseleave', () => {
+    card.style.transform = 'perspective(1200px) rotateX(0) rotateY(0) translateZ(0)';
+  });
+});
+
+// P4-T14: Hero stat counters removed — replaced by static badges (v3.4)
+
+// P4-T16: Cursor particle trail (desktop only)
+if (!('ontouchstart' in window)) {
+  document.addEventListener('mousemove', (e) => {
+    const p = document.createElement('div');
+    p.style.cssText = `position:fixed;left:${e.clientX}px;top:${e.clientY}px;width:6px;height:6px;border-radius:50%;background:rgba(66,165,245,0.7);pointer-events:none;z-index:9999;transform:translate(-50%,-50%);animation:trailFade 0.6s ease forwards;`;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 600);
+  });
+}
+</script>
+</body>
+</html>

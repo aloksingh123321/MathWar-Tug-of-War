@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="description" content="MathWar — Interactive Dual Calculator Tug-of-War Game. Two players compete by solving math problems to pull the rope!" />
+  <title>MathWar — Tug of War</title>
+  <!-- PWA (P2-T5 + P4-T15 fix) -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#1565C0" />
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(() => console.log('[MathWar] PWA registered'))
+          .catch(err => console.warn('[MathWar] PWA failed:', err));
+      });
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <!-- P3-T9: sql.js WebAssembly SQLite moved to body -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Rotation prompt for portrait phones -->
+  <div id="rotatePrompt">
+    <div class="rotate-icon">📱</div>
+    <div class="rotate-text">Rotate your device!<br>MathWar plays best in landscape.</div>
+    <div class="rotate-sub">Turn your phone sideways to battle! ⚔</div>
+  </div>
+
+  <div id="gameContainer">
+
+    <!-- ═══ PLAYER 1 PANEL (LEFT — BLUE) ═══ -->
+    <div id="panel1" class="player-panel p1-panel">
+      <div class="panel-header p1-header">
+        <span class="player-label">⚔ PLAYER 1</span>
+        <span class="player-score" id="score1">Score: 0</span>
+      </div>
+      <div class="problem-area p1-problem-area">
+        <div class="problem-label">SOLVE:</div>
+        <div class="problem-text" id="problem1">2 + 5 = ?</div>
+      </div>
+      <!-- P4-T15: AI Hint box -->
+      <div class="hint-box hidden" id="hint1"></div>
+      <div class="input-box p1-input" id="inputBox1">
+        <span class="input-cursor">▶</span>
+        <span class="input-display" id="input1">_</span>
+      </div>
+      <div class="keypad" id="keypad1">
+        <!-- Row 1 -->
+        <button class="btn-key btn-digit p1-btn" data-player="1" data-value="1" id="p1-btn-1">1</button>
+        <button class="btn-key btn-digit p1-btn" data-player="1" data-value="2" id="p1-btn-2">2</button>
+        <button class="btn-key btn-digit p1-btn" data-player="1" data-value="3" id="p1-btn-3">3</button>
+        <!-- Row 2 -->
+        <button class="btn-key btn-digit p1-btn" data-player="1" data-value="4" id="p1-btn-4">4</button>
+        <button class="btn-key btn-digit p1-btn" data-player="1" data-value="5" id="p1-btn-5">5</button>
+        <button class="btn-key btn-digit p1-btn" data-player="1" data-value="6" id="p1-btn-6">6</button>
+        <!-- Row 3 -->
+        <button class="btn-key btn-digit p1-btn" data-player="1" data-value="7" id="p1-btn-7">7</button>
+        <button class="btn-key btn-digit p1-btn" data-player="1" data-value="8" id="p1-btn-8">8</button>
+        <button class="btn-key btn-digit p1-btn" data-player="1" data-value="9" id="p1-btn-9">9</button>
+        <!-- Row 4 -->
+        <button class="btn-key btn-zero p1-btn" data-player="1" data-value="0" id="p1-btn-0">0</button>
+        <button class="btn-key btn-delete" data-player="1" data-value="delete" id="p1-btn-del">⌫</button>
+        <!-- Bottom row -->
+        <button class="btn-key btn-clear" data-player="1" data-value="clear" id="p1-btn-clear">✕ CLEAR</button>
+        <button class="btn-key btn-submit" data-player="1" data-value="submit" id="p1-btn-submit">✔ GO</button>
+      </div>
+      <!-- P4-T16: Speed/Streak badge for P1 -->
+      <div class="speed-badge hidden" id="streakBadge1" style="position:absolute;top:50%;right:8px;"></div>
+    </div>
+
+    <!-- ═══ CENTER ARENA ═══ -->
+    <div id="arenaPanel">
+
+      <!-- ── User badge (top, shown during game) ── -->
+      <div id="userBadge" class="user-badge hidden">
+        <span id="userAvatar" onclick="window.location.href='profile.html'" style="cursor:pointer;" title="View Profile">🧑</span>
+        <span id="userNameBadge" onclick="window.location.href='profile.html'" style="cursor:pointer;" title="View Profile">Player</span>
+        <button id="profileBtn" onclick="window.location.href='profile.html'" title="Profile">📊</button>
+        <button id="logoutBtn"  onclick="if(typeof MathWarAuth!=='undefined')MathWarAuth.logout()" title="Logout">⏏</button>
+      </div>
+
+      <!-- ── Mode Selector Overlay (shown before START) ── -->
+      <div id="modeSelector" class="mode-selector-overlay">
+        <div class="mode-title">⚔ SELECT GAME MODE ⚔</div>
+        <div class="mode-cards">
+          <div class="mode-card selected" id="modePvP" onclick="selectMode('pvp')">
+            <div class="mode-icon">👥</div>
+            <div class="mode-label">PVP</div>
+            <div class="mode-desc">Two players, same device</div>
+          </div>
+          <div class="mode-card" id="modePvC" onclick="selectMode('pvc')">
+            <div class="mode-icon">🤖</div>
+            <div class="mode-label">VS AI</div>
+            <div class="mode-desc">Solo challenge vs AI</div>
+          </div>
+          <div class="mode-card" id="modeBlitz" onclick="selectMode('blitz')">
+            <div class="mode-icon">⚡</div>
+            <div class="mode-label">BLITZ</div>
+            <div class="mode-desc">3s per problem!</div>
+          </div>
+          <div class="mode-card" id="modePractice" onclick="selectMode('practice')">
+            <div class="mode-icon">📚</div>
+            <div class="mode-label">PRACTICE</div>
+            <div class="mode-desc">Learn at your own pace</div>
+          </div>
+
+        </div>
+        <!-- Difficulty selector (shown only for PvC) -->
+        <div id="difficultySelector" class="diff-selector hidden">
+          <div class="diff-title">SELECT DIFFICULTY:</div>
+          <div class="diff-btns">
+            <button class="diff-btn" data-diff="easy"   onclick="selectDiff('easy')"  >EASY</button>
+            <button class="diff-btn selected" data-diff="medium" onclick="selectDiff('medium')">MEDIUM</button>
+            <button class="diff-btn" data-diff="hard"   onclick="selectDiff('hard')"  >HARD</button>
+          </div>
+        </div>
+        <button class="mode-start-btn" id="modeStartBtn">▶ START GAME</button>
+      </div>
+
+      <div id="timerDisplay" class="timer">1:00</div>
+      <canvas id="arenaCanvas"></canvas>
+
+      <!-- P4-T16: Pause button & overlay -->
+      <button id="pauseBtn" class="pause-btn hidden" onclick="togglePause()">⏸</button>
+      <div id="pauseOverlay" class="pause-overlay hidden">
+        <div class="pause-card">
+          <div style="font-size:3rem;margin-bottom:12px">⏸</div>
+          <div style="font-family:'Fredoka One',cursive;font-size:1.8rem;color:#fff;
+                      margin-bottom:24px;letter-spacing:4px">PAUSED</div>
+          <button onclick="togglePause()"
+            style="display:block;width:100%;padding:14px;margin-bottom:10px;
+                   background:#1565C0;color:#fff;border:none;border-radius:14px;
+                   font-size:1rem;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;">▶ RESUME</button>
+          <button onclick="window.location.href='index.html'"
+            style="display:block;width:100%;padding:14px;background:rgba(255,255,255,0.1);
+                   color:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:14px;
+                   font-size:1rem;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;">🏠 QUIT</button>
+        </div>
+      </div>
+
+      <div id="startBtn" class="start-overlay hidden">
+        <div class="start-content">
+          <div class="start-title">⚔ MATHWAR ⚔</div>
+          <div class="start-sub">Tug of War</div>
+          <button class="start-game-btn" id="startGameBtn">▶ START GAME</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ PLAYER 2 PANEL (RIGHT — RED) ═══ -->
+    <div id="panel2" class="player-panel p2-panel">
+      <div class="panel-header p2-header">
+        <span class="player-score" id="score2">Score: 0</span>
+        <span class="player-label">PLAYER 2 ⚔</span>
+      </div>
+      <div class="problem-area p2-problem-area">
+        <div class="problem-label">SOLVE:</div>
+        <div class="problem-text" id="problem2">9 - 3 = ?</div>
+      </div>
+      <!-- P4-T15: AI Hint box -->
+      <div class="hint-box hidden" id="hint2"></div>
+      <div class="input-box p2-input" id="inputBox2">
+        <span class="input-display" id="input2">_</span>
+        <span class="input-cursor">◀</span>
+      </div>
+      <div class="keypad" id="keypad2">
+        <!-- Row 1 -->
+        <button class="btn-key btn-digit p2-btn" data-player="2" data-value="1" id="p2-btn-1">1</button>
+        <button class="btn-key btn-digit p2-btn" data-player="2" data-value="2" id="p2-btn-2">2</button>
+        <button class="btn-key btn-digit p2-btn" data-player="2" data-value="3" id="p2-btn-3">3</button>
+        <!-- Row 2 -->
+        <button class="btn-key btn-digit p2-btn" data-player="2" data-value="4" id="p2-btn-4">4</button>
+        <button class="btn-key btn-digit p2-btn" data-player="2" data-value="5" id="p2-btn-5">5</button>
+        <button class="btn-key btn-digit p2-btn" data-player="2" data-value="6" id="p2-btn-6">6</button>
+        <!-- Row 3 -->
+        <button class="btn-key btn-digit p2-btn" data-player="2" data-value="7" id="p2-btn-7">7</button>
+        <button class="btn-key btn-digit p2-btn" data-player="2" data-value="8" id="p2-btn-8">8</button>
+        <button class="btn-key btn-digit p2-btn" data-player="2" data-value="9" id="p2-btn-9">9</button>
+        <!-- Row 4: mirrored — backspace first, then 0 -->
+        <button class="btn-key btn-delete" data-player="2" data-value="delete" id="p2-btn-del">⌫</button>
+        <button class="btn-key btn-zero p2-btn" data-player="2" data-value="0" id="p2-btn-0">0</button>
+        <!-- Bottom row: mirrored — submit first, then clear -->
+        <button class="btn-key btn-submit" data-player="2" data-value="submit" id="p2-btn-submit">✔ GO</button>
+        <button class="btn-key btn-clear" data-player="2" data-value="clear" id="p2-btn-clear">✕ CLEAR</button>
+      </div>
+      <!-- P4-T16: Speed/Streak badge for P2 -->
+      <div class="speed-badge hidden" id="streakBadge2" style="position:absolute;top:50%;left:8px;"></div>
+    </div>
+
+  </div>
+
+  <!-- ═══ WIN MODAL ═══ -->
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="winnerText">
+    <div class="modal-card">
+      <div class="trophy" id="trophyEmoji">🏆</div>
+      <h1 id="winnerText">PLAYER 1 WINS!</h1>
+      <p id="winDetail">Outstanding math skills! Keep it up!</p>
+      <div class="final-scores">
+        <div class="final-score-item p1-score-final">
+          <div class="score-label">Player 1</div>
+          <div class="score-val" id="finalScore1">0</div>
+        </div>
+        <div class="vs-divider">VS</div>
+        <div class="final-score-item p2-score-final">
+          <div class="score-label">Player 2</div>
+          <div class="score-val" id="finalScore2">0</div>
+        </div>
+      </div>
+      <button id="playAgainBtn" class="play-again-btn">⚡ PLAY AGAIN</button>
+      <button class="profile-modal-btn" ontouchstart="event.preventDefault(); window.location.href='profile.html'" onclick="window.location.href='profile.html'">📊 View Profile</button>
+    </div>
+  </div>
+
+  <!-- ═══ DIFFICULTY BADGE ═══ -->
+  <div id="diffBadge1" class="diff-badge diff-badge-left hidden">⬆ LEVEL UP!</div>
+  <div id="diffBadge2" class="diff-badge diff-badge-right hidden">⬆ LEVEL UP!</div>
+
+  <!-- Base Scripts: Firebase Compat SDK (must load BEFORE db.js) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+  <script src="config.js"></script>
+  <script src="db.js?v=8"></script>
+  <script src="auth.js?v=8"></script>
+  <script src="ai.js?v=8"></script>
+  <script src="game.js?v=8"></script>
+  <script src="app.js?v=8"></script>
+
+  <!-- P4-T15: Three.js WebGL particle background (B-10 FIX) -->
+  <canvas id="bgCanvas" style="position:fixed;top:0;left:0;
+    width:100%;height:100%;z-index:-1;pointer-events:none;opacity:0.28;">
+  </canvas>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="sound.js?v=7"></script>
+  <script>
+  (function initBg() {
+    const canvas = document.getElementById('bgCanvas');
+    if (!canvas || typeof THREE === 'undefined') return;
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    const scene  = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.1, 100);
+    camera.position.z = 6;
+    const N = 600;
+    const pos = new Float32Array(N * 3);
+    const col = new Float32Array(N * 3);
+    const vel = new Float32Array(N * 3);
+    for (let i = 0; i < N; i++) {
+      const x = (Math.random() - 0.5) * 22;
+      pos[i*3]   = x;
+      pos[i*3+1] = (Math.random() - 0.5) * 14;
+      pos[i*3+2] = (Math.random() - 0.5) * 8;
+      vel[i*3]   = (Math.random() - 0.5) * 0.002;
+      vel[i*3+1] = (Math.random() - 0.5) * 0.002;
+      if (x < -1) {
+        col[i*3]=0.1+Math.random()*0.2; col[i*3+1]=0.4+Math.random()*0.3;
+        col[i*3+2]=0.8+Math.random()*0.2;
+      } else if (x > 1) {
+        col[i*3]=0.8+Math.random()*0.2; col[i*3+1]=0.2+Math.random()*0.2;
+        col[i*3+2]=0.05+Math.random()*0.1;
+      } else {
+        col[i*3]=col[i*3+1]=col[i*3+2]=0.8+Math.random()*0.2;
+      }
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color',    new THREE.BufferAttribute(col, 3));
+    const mat = new THREE.PointsMaterial({
+      size:0.055, vertexColors:true, transparent:true, opacity:0.75,
+      blending:THREE.AdditiveBlending, depthWrite:false, sizeAttenuation:true
+    });
+    const cloud = new THREE.Points(geo, mat);
+    scene.add(cloud);
+    let t = 0; const posAttr = geo.attributes.position;
+    function tick() {
+      requestAnimationFrame(tick); t += 0.008;
+      for (let i = 0; i < N; i++) {
+        posAttr.array[i*3]   += vel[i*3];
+        posAttr.array[i*3+1] += vel[i*3+1] + Math.sin(t + i*0.07)*0.0004;
+        if (posAttr.array[i*3+1] >  7.5) posAttr.array[i*3+1] = -7.5;
+        if (posAttr.array[i*3+1] < -7.5) posAttr.array[i*3+1] =  7.5;
+      }
+      posAttr.needsUpdate = true;
+      cloud.rotation.z = Math.sin(t * 0.12) * 0.04;
+      cloud.rotation.y = t * 0.018;
+      renderer.render(scene, camera);
+    }
+    tick();
+    window.addEventListener('resize', () => {
+      renderer.setSize(innerWidth, innerHeight);
+      camera.aspect = innerWidth/innerHeight;
+      camera.updateProjectionMatrix();
+    });
+  })();
+  </script>
+
+</body>
+</html>
