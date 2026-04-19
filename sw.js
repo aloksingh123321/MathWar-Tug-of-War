@@ -2,7 +2,7 @@
    sw.js — MathWar Service Worker (PWA — Offline Caching)
    v9: Updated cache version forces fresh cache on update
    ================================================================ */
-const CACHE = 'mathwar-v9';   // B-11 FIX: bumped to force cache refresh
+const CACHE = 'mathwar-v10';  // v10: mobile sound fix + portrait layout
 const FILES = [
   '/',
   'index.html',

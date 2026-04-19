@@ -13,10 +13,11 @@
 html, body {
   width: 100%;
   height: 100%;
-  overflow: hidden;
+  /* MOBILE FIX: allow scroll when needed (portrait stacked) */
+  overflow-x: hidden;
+  overflow-y: auto;
   background: #000;
   font-family: 'Nunito', sans-serif;
-  /* BUG #13 FIX: touch-action moved to #gameContainer, not global */
   touch-action: auto;
   -webkit-user-select: none;
   user-select: none;
@@ -29,9 +30,9 @@ html, body {
   display: flex;
   flex-direction: row;
   width: 100vw;
-  height: 100vh;
-  /* BUG #13 FIX: game canvas touch control only here */
-  touch-action: none;
+  min-height: 100vh;
+  /* touch-action: none blocks scroll on mobile — only applied on large screens */
+  touch-action: pan-y;
 }
 
 /* ================================================================
@@ -957,128 +958,26 @@ body, .panel-header, .score, input, label {
    MOBILE RESPONSIVE — MathWar v3
    ════════════════════════════════════════════════════════════ */
 
-/* ── ORIENTATION PROMPT (phones in portrait) ── */
+/* ══════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE — MathWar v3.5 — FULL MOBILE OVERHAUL
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Rotate prompt: hidden by default (we now support portrait) ── */
 #rotatePrompt {
-  display: none;
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  background: linear-gradient(135deg, #0D1B3E, #3E0D0D);
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
-  color: white;
-  font-family: 'Fredoka One', 'Nunito', sans-serif;
-  text-align: center;
-  padding: 40px;
+  display: none !important; /* portrait is now supported with stacked layout */
 }
-.rotate-icon {
-  font-size: 5rem;
-  animation: rotatePulse 1.5s ease-in-out infinite;
-}
-@keyframes rotatePulse {
-  0%,100% { transform: rotate(0deg); }
-  50%      { transform: rotate(90deg); }
-}
+.rotate-icon { font-size: 5rem; }
 .rotate-text { font-size: 1.3rem; font-weight: 700; line-height: 1.4; }
 .rotate-sub  { font-size: 0.9rem; opacity: 0.6; }
 
-/* Show prompt only on small portrait screens */
-@media screen and (max-width: 600px) and (orientation: portrait) {
-  #rotatePrompt { display: flex; }
-  #gameContainer { display: none; }
-}
-
-/* ── TABLET LANDSCAPE (768px–1024px) ── */
-@media screen and (max-width: 1024px) and (orientation: landscape) {
-  .player-panel { width: 38%; }
-  #arenaPanel { width: 24%; }
-
-  .problem-text { font-size: clamp(1.3rem, 2.5vw, 2.2rem); }
-  .input-display { font-size: clamp(1.2rem, 2vw, 1.8rem); }
-
-  .keypad {
-    gap: 5px;
-    padding: 6px 10px 10px;
+/* ── Safe area insets (iPhone notch / Dynamic Island) ── */
+@supports (padding: max(0px)) {
+  #gameContainer {
+    padding-left:   max(0px, env(safe-area-inset-left));
+    padding-right:  max(0px, env(safe-area-inset-right));
+    padding-top:    max(0px, env(safe-area-inset-top));
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
   }
-
-  .btn-key {
-    font-size: clamp(1rem, 2vw, 1.5rem);
-    border-radius: 8px;
-  }
-
-  #timerDisplay {
-    font-size: clamp(1.4rem, 2.5vw, 2.2rem);
-    padding: 4px 14px;
-  }
-}
-
-/* ── SMALL TABLET / LARGE PHONE LANDSCAPE (480px–768px) ── */
-@media screen and (max-width: 768px) and (orientation: landscape) {
-  .player-panel { width: 37%; }
-  #arenaPanel { width: 26%; min-width: 120px; }
-
-  .panel-header { padding: 7px 10px; font-size: 0.65rem; letter-spacing: 1px; }
-  .player-label { letter-spacing: 1px; }
-
-  .problem-area { flex: 0 0 14%; padding: 4px 8px; }
-  .problem-label { display: none; }
-  .problem-text { font-size: clamp(1.1rem, 2.8vw, 1.8rem); letter-spacing: 1px; }
-
-  .input-box {
-    margin: 3px 8px;
-    min-height: 44px;
-    padding: 6px 12px;
-  }
-  .input-display { font-size: clamp(1.1rem, 2.5vw, 1.6rem); }
-  .input-cursor { display: none; }
-
-  .keypad {
-    gap: 4px;
-    padding: 4px 8px 8px;
-  }
-  .btn-key {
-    font-size: clamp(0.9rem, 2.2vw, 1.3rem);
-    border-radius: 6px;
-    box-shadow: 0 3px 0 rgba(0,0,0,0.5), 0 4px 8px rgba(0,0,0,0.3);
-  }
-  .btn-key:active, .btn-key.active {
-    transform: translateY(3px) scale(0.96);
-    box-shadow: 0 0px 0 rgba(0,0,0,0.5);
-  }
-
-  .btn-clear, .btn-submit {
-    font-size: clamp(0.75rem, 1.8vw, 1rem);
-  }
-
-  #timerDisplay {
-    font-size: clamp(1.1rem, 2.5vw, 1.8rem);
-    padding: 3px 10px;
-    margin: 4px 0 2px;
-  }
-
-  .mode-card { padding: 12px 6px; }
-  .mode-icon { font-size: 1.8rem; }
-  .mode-label { font-size: 0.7rem; }
-  .mode-desc { display: none; }
-  .mode-start-btn { padding: 10px 24px; font-size: 0.9rem; }
-
-  .user-badge {
-    padding: 4px 8px;
-    gap: 6px;
-  }
-  #userNameBadge { max-width: 60px; font-size: 0.7rem; }
-  #profileBtn, #logoutBtn { font-size: 0.9rem; }
-
-  .modal-card { padding: 24px 20px; }
-  .trophy { font-size: 2.5rem; }
-  #winnerText { font-size: clamp(1.2rem, 3vw, 2rem); }
-  .play-again-btn { padding: 10px 28px; font-size: 0.9rem; }
-  .final-scores { gap: 10px; margin-bottom: 16px; }
-  .score-val { font-size: 1.4rem; }
-
-  .diff-badge { font-size: 0.7rem; padding: 5px 12px; top: 40px; }
 }
 
 /* ── Ensure minimum tap target size (Apple/Google 44×44px) ── */
@@ -1092,28 +991,265 @@ body, .panel-header, .score, input, label {
   -webkit-touch-callout: none;
 }
 
-/* ── Safe area insets (iPhone notch/Dynamic Island) ── */
-@supports (padding: max(0px)) {
+/* ════════════════════════════════════════════════════════════════
+   PORTRAIT PHONE — STACKED LAYOUT (≤ 600px portrait)
+   Player 1 on top, Arena in middle, Player 2 on bottom.
+   Players can scroll their own panel to access keypad.
+   ════════════════════════════════════════════════════════════════ */
+@media screen and (max-width: 600px) and (orientation: portrait) {
+  html, body { overflow-y: auto; height: auto; min-height: 100dvh; }
+
   #gameContainer {
-    padding-left: max(0px, env(safe-area-inset-left));
-    padding-right: max(0px, env(safe-area-inset-right));
-    padding-top: max(0px, env(safe-area-inset-top));
-    padding-bottom: max(0px, env(safe-area-inset-bottom));
+    flex-direction: column;
+    height: auto;
+    min-height: 100dvh;
+    width: 100vw;
+    overflow-y: auto;
+    overflow-x: hidden;
+    touch-action: pan-y; /* allow vertical scroll */
   }
+
+  /* Player panels stacked — each takes ~42% of viewport */
+  .player-panel {
+    width: 100%;
+    height: auto;
+    min-height: 42vh;
+    flex-direction: column;
+    overflow: visible;
+    border-right: none !important;
+    border-left: none !important;
+    border-bottom: 2px solid rgba(255,255,255,0.08);
+  }
+
+  /* 3D effects are too heavy for portrait — simplify */
+  .p1-panel { transform: none !important; }
+  .p2-panel { transform: none !important; }
+  .p1-panel.panel-pulse,
+  .p2-panel.panel-pulse { animation: none !important; }
+
+  /* Center Arena becomes a horizontal bar */
+  #arenaPanel {
+    width: 100%;
+    height: auto;
+    min-height: 80px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    border-left: none;
+    border-right: none;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    backdrop-filter: blur(12px);
+    gap: 10px;
+  }
+
+  /* Arena canvas fills the bar */
+  #arenaCanvas {
+    flex: 1;
+    max-height: 70px;
+    min-height: 50px;
+    width: auto;
+  }
+
+  /* Timer beside canvas */
+  #timerDisplay {
+    font-size: 1.3rem;
+    padding: 4px 12px;
+    margin: 0;
+    letter-spacing: 2px;
+    flex-shrink: 0;
+  }
+
+  /* Mode selector overlay fills the arena bar */
+  .mode-selector-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    padding: 20px 16px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mode-title { font-size: 1.2rem; letter-spacing: 2px; margin-bottom: 16px; }
+  .mode-cards {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 14px;
+    max-width: 100%;
+  }
+  .mode-card  { padding: 10px 6px; }
+  .mode-icon  { font-size: 1.6rem; margin-bottom: 4px; }
+  .mode-label { font-size: 0.7rem; }
+  .mode-desc  { font-size: 0.6rem; }
+  .mode-start-btn {
+    padding: 12px 28px;
+    font-size: 1rem;
+    width: 100%;
+  }
+
+  /* Panel header */
+  .panel-header {
+    padding: 8px 14px;
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+  }
+
+  /* Problem area */
+  .problem-area  { flex: none; padding: 10px 16px; }
+  .problem-label { display: none; }
+  .problem-text  { font-size: clamp(1.6rem, 6vw, 2.4rem); letter-spacing: 2px; }
+
+  /* Input box */
+  .input-box   { margin: 6px 12px; min-height: 52px; padding: 8px 16px; }
+  .input-display { font-size: 1.6rem; }
+  .input-cursor  { display: none; }
+
+  /* Keypad grid — larger touch targets in portrait */
+  .keypad {
+    padding: 8px 12px 14px;
+    gap: 7px;
+    flex: none;
+    grid-auto-rows: 56px; /* fixed large row height */
+  }
+
+  .btn-key {
+    font-size: 1.3rem;
+    border-radius: 10px;
+    min-height: 52px;
+  }
+  .btn-submit, .btn-clear { font-size: 1rem; min-height: 52px; }
+
+  /* Win modal */
+  .modal-card {
+    padding: 28px 20px 32px;
+    margin: 16px;
+    border-radius: 20px;
+  }
+  .trophy      { font-size: 3rem; }
+  #winnerText  { font-size: 1.5rem; }
+  .play-again-btn { padding: 12px 32px; font-size: 1rem; }
+  .profile-modal-btn { padding: 10px; font-size: 0.85rem; }
+  .final-scores { gap: 10px; margin-bottom: 16px; }
+  .score-val { font-size: 1.4rem; }
+
+  /* Badges */
+  .speed-badge, .streak-badge { display: none !important; }
+  .diff-badge { font-size: 0.7rem; padding: 5px 12px; top: 8px; }
+
+  /* Pause button */
+  .pause-btn { bottom: 4px; right: 4px; width: 32px; height: 32px; font-size: 1rem; }
+
+  /* User badge */
+  .user-badge {
+    position: static;
+    margin: 4px auto;
+    padding: 4px 10px;
+    gap: 6px;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+  }
+  #userNameBadge { max-width: 80px; font-size: 0.72rem; }
+
+  /* Diff badges */
+  .diff-badge-left  { left: 8px; }
+  .diff-badge-right { right: 8px; }
+
+  /* Hint box */
+  .hint-box { margin: 4px 12px; font-size: 0.78rem; }
+
+  /* Streak badges absolute positions */
+  #streakBadge1 { top: auto; bottom: 8px; right: 8px; }
+  #streakBadge2 { top: auto; bottom: 8px; left: 8px; }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   LANDSCAPE PHONE (≤ 768px landscape)
+   ════════════════════════════════════════════════════════════════ */
+@media screen and (max-width: 768px) and (orientation: landscape) {
+  html, body { overflow: hidden; height: 100%; } /* lock scroll in landscape */
+
+  #gameContainer {
+    flex-direction: row;
+    height: 100vh;
+    touch-action: none;
+  }
+
+  .player-panel { width: 37%; height: 100%; }
+  #arenaPanel   { width: 26%; min-width: 110px; }
+
+  .panel-header  { padding: 6px 8px; font-size: 0.6rem; letter-spacing: 1px; }
+  .player-label  { letter-spacing: 0.5px; }
+
+  .problem-area  { flex: 0 0 13%; padding: 4px 6px; }
+  .problem-label { display: none; }
+  .problem-text  { font-size: clamp(1rem, 2.6vw, 1.7rem); letter-spacing: 1px; }
+
+  .input-box     { margin: 3px 6px; min-height: 40px; padding: 5px 10px; }
+  .input-display { font-size: clamp(1rem, 2.2vw, 1.5rem); }
+  .input-cursor  { display: none; }
+
+  .keypad {
+    gap: 4px;
+    padding: 4px 6px 8px;
+  }
+  .btn-key {
+    font-size: clamp(0.85rem, 2vw, 1.2rem);
+    border-radius: 6px;
+    min-height: 40px;
+  }
+  .btn-key:active, .btn-key.active {
+    transform: translateY(3px) scale(0.96);
+    box-shadow: 0 0px 0 rgba(0,0,0,0.5);
+  }
+  .btn-clear, .btn-submit { font-size: clamp(0.7rem, 1.6vw, 0.95rem); }
+
+  #timerDisplay  { font-size: clamp(1rem, 2.2vw, 1.6rem); padding: 3px 8px; margin: 4px 0 2px; }
+
+  .mode-card     { padding: 10px 5px; }
+  .mode-icon     { font-size: 1.6rem; }
+  .mode-label    { font-size: 0.68rem; }
+  .mode-desc     { display: none; }
+  .mode-start-btn { padding: 9px 20px; font-size: 0.88rem; }
+
+  .user-badge    { padding: 4px 7px; gap: 5px; }
+  #userNameBadge { max-width: 55px; font-size: 0.68rem; }
+  #profileBtn, #logoutBtn { font-size: 0.85rem; }
+
+  .modal-card    { padding: 20px 18px; }
+  .trophy        { font-size: 2.2rem; }
+  #winnerText    { font-size: clamp(1.1rem, 2.8vw, 1.8rem); }
+  .play-again-btn { padding: 9px 24px; font-size: 0.88rem; }
+  .final-scores  { gap: 8px; margin-bottom: 14px; }
+  .score-val     { font-size: 1.3rem; }
+  .diff-badge    { font-size: 0.68rem; padding: 4px 10px; top: 38px; }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   TABLET LANDSCAPE (768px–1024px)
+   ════════════════════════════════════════════════════════════════ */
+@media screen and (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
+  .player-panel  { width: 38%; }
+  #arenaPanel    { width: 24%; }
+  .problem-text  { font-size: clamp(1.3rem, 2.5vw, 2.2rem); }
+  .input-display { font-size: clamp(1.2rem, 2vw, 1.8rem); }
+  .keypad { gap: 5px; padding: 6px 10px 10px; }
+  .btn-key { font-size: clamp(1rem, 2vw, 1.5rem); border-radius: 8px; }
+  #timerDisplay  { font-size: clamp(1.4rem, 2.5vw, 2.2rem); padding: 4px 14px; }
 }
 
 /* ── Auth pages mobile ── */
 @media screen and (max-width: 480px) {
-  .auth-body { padding: 16px 12px; }
+  .auth-body    { padding: 16px 12px; }
   .auth-wrapper { max-width: 100%; }
-  .auth-card { padding: 20px 16px; border-radius: 16px; }
+  .auth-card    { padding: 20px 16px; border-radius: 16px; }
   .auth-logo-text { font-size: 1.8rem; }
   .auth-logo-icon { font-size: 2.2rem; }
-  .form-row { grid-template-columns: 1fr; gap: 0; }
+  .form-row     { grid-template-columns: 1fr; gap: 0; }
   .gender-options { gap: 5px; }
-  .gender-opt { flex: unset; padding: 7px 10px; font-size: 0.75rem; }
-  .auth-btn { padding: 12px; font-size: 0.9rem; }
-  .google-btn { padding: 10px; font-size: 0.85rem; }
+  .gender-opt   { flex: unset; padding: 7px 10px; font-size: 0.75rem; }
+  .auth-btn     { padding: 12px; font-size: 0.9rem; }
+  .google-btn   { padding: 10px; font-size: 0.85rem; }
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -1267,6 +1403,20 @@ body,.panel-header,input,label,.player-score {
 }
 .pause-btn:hover { background: rgba(255,255,255,0.15); transform: scale(1.1); }
 .pause-btn.hidden { display: none !important; }
+
+/* Sound toggle button */
+.sound-btn {
+  position: absolute; bottom: 54px; right: 12px; z-index: 50;
+  background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.8); font-size: 1rem; width: 36px; height: 36px;
+  border-radius: 50%; cursor: pointer; display: flex; align-items: center;
+  justify-content: center; transition: background 0.2s, transform 0.1s;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+.sound-btn:hover  { background: rgba(255,255,255,0.15); transform: scale(1.1); }
+.sound-btn:active { transform: scale(0.9); }
+.sound-btn.hidden { display: none !important; }
+.sound-btn.muted  { opacity: 0.45; }
 
 /* Pause overlay */
 .pause-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.72);

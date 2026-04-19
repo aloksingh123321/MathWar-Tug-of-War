@@ -1,36 +1,97 @@
 /* ================================================================
-   sound.js — MathWar SoundSystem (Web Audio API — zero dependencies)
+   sound.js — MathWar SoundSystem v2 (Web Audio API — zero dependencies)
+   MOBILE FIX: AudioContext is unlocked on the FIRST user gesture.
+   Browsers (especially iOS Safari, Chrome Android) block AudioContext
+   until a real user interaction. We defer context creation until the
+   first touch/click, and attach a one-time unlock listener.
    ================================================================ */
 class SoundSystem {
   constructor() {
-    this._ctx = null;
-    this._muted = false;
-    this._init();
+    this._ctx    = null;
+    this._muted  = false;
+    this._ready  = false;  // true once context is running
+    this._queue  = [];     // sounds queued before unlock
+    this._attachUnlockListeners();
   }
 
-  _init() {
+  /* ── Unlock on first gesture (mobile requirement) ── */
+  _attachUnlockListeners() {
+    const unlock = () => {
+      this._ensureContext();
+      // Remove after first successful unlock
+      if (this._ctx && this._ctx.state !== 'suspended') {
+        document.removeEventListener('touchstart', unlock, true);
+        document.removeEventListener('touchend',   unlock, true);
+        document.removeEventListener('click',      unlock, true);
+        document.removeEventListener('keydown',    unlock, true);
+        this._ready = true;
+        // Drain any queued sounds
+        this._queue.forEach(fn => fn());
+        this._queue = [];
+      }
+    };
+    document.addEventListener('touchstart', unlock, { capture: true, passive: true });
+    document.addEventListener('touchend',   unlock, { capture: true, passive: true });
+    document.addEventListener('click',      unlock, { capture: true, passive: true });
+    document.addEventListener('keydown',    unlock, { capture: true, passive: true });
+  }
+
+  /* ── Lazily create AudioContext ── */
+  _ensureContext() {
+    if (this._ctx) {
+      // Resume if suspended (standard unlock flow)
+      if (this._ctx.state === 'suspended') {
+        this._ctx.resume().then(() => { this._ready = true; }).catch(() => {});
+      }
+      return;
+    }
     try {
       this._ctx = new (window.AudioContext || window.webkitAudioContext)();
-    } catch(e) { console.warn('[Sound] Web Audio not supported'); }
+      if (this._ctx.state === 'running') this._ready = true;
+      else {
+        this._ctx.resume().then(() => { this._ready = true; }).catch(() => {});
+      }
+    } catch(e) {
+      console.warn('[Sound] Web Audio API not supported on this device.');
+    }
   }
 
+  /* ── Resume helper (called externally by app.js on game start) ── */
   _resume() {
-    if (this._ctx && this._ctx.state === 'suspended') this._ctx.resume();
+    this._ensureContext();
   }
 
-  _beep(freq, type, dur, vol=0.4, delay=0) {
-    if (this._muted || !this._ctx) return;
-    this._resume();
-    const osc  = this._ctx.createOscillator();
-    const gain = this._ctx.createGain();
-    osc.connect(gain); gain.connect(this._ctx.destination);
-    osc.type = type; osc.frequency.value = freq;
-    const t = this._ctx.currentTime + delay;
-    gain.gain.setValueAtTime(vol, t);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    osc.start(t); osc.stop(t + dur + 0.05);
+  /* ── Internal beep generator ── */
+  _beep(freq, type, dur, vol = 0.4, delay = 0) {
+    if (this._muted) return;
+
+    const play = () => {
+      if (!this._ctx || this._ctx.state === 'suspended') return;
+      try {
+        const osc  = this._ctx.createOscillator();
+        const gain = this._ctx.createGain();
+        osc.connect(gain);
+        gain.connect(this._ctx.destination);
+        osc.type = type;
+        osc.frequency.value = freq;
+        const t = this._ctx.currentTime + delay;
+        gain.gain.setValueAtTime(vol, t);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        osc.start(t);
+        osc.stop(t + dur + 0.05);
+      } catch(e) { /* silent fail */ }
+    };
+
+    if (this._ready) {
+      play();
+    } else {
+      // Ensure context attempt, then queue
+      this._ensureContext();
+      this._queue.push(play);
+    }
   }
 
+  /* ── Public sound methods ── */
   correct() {
     this._beep(523, 'sine',   0.12, 0.35, 0);
     this._beep(659, 'sine',   0.12, 0.30, 0.12);
@@ -50,9 +111,9 @@ class SoundSystem {
   }
 
   streak() {
-    this._beep(880, 'sine', 0.08, 0.4, 0);
-    this._beep(1108,'sine', 0.08, 0.35, 0.08);
-    this._beep(1320,'sine', 0.14, 0.4, 0.16);
+    this._beep(880,  'sine', 0.08, 0.4,  0);
+    this._beep(1108, 'sine', 0.08, 0.35, 0.08);
+    this._beep(1320, 'sine', 0.14, 0.4,  0.16);
   }
 
   speedBonus() {

@@ -148,7 +148,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.getElementById('pauseBtn')?.classList.remove('hidden');
-    if (sounds) sounds._resume();
+    document.getElementById('soundBtn')?.classList.remove('hidden'); // MOBILE: show sound button
+    if (sounds) sounds._resume(); // attempt audio context unlock
 
     if ((gameMode === 'pvc' || gameMode === 'blitz') && ai) {
       ai.difficulty = aiDiff;
@@ -166,6 +167,18 @@ document.addEventListener('DOMContentLoaded', () => {
       gameCtrl.start();
     }, { passive: false });
   }
+
+  /* ── Sound Toggle (mobile-friendly, also unlocks AudioContext) ── */
+  window.toggleSound = () => {
+    if (!sounds) return;
+    sounds._resume(); // unlock context on first tap
+    const isOn = sounds.toggle();
+    const btn = document.getElementById('soundBtn');
+    if (btn) {
+      btn.textContent = isOn ? '🔊' : '🔇';
+      btn.classList.toggle('muted', !isOn);
+    }
+  };
 
   /* ── Pause System ── */
   // B-06 FIX: null check for _startBlitzProblemTimer
@@ -196,6 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
     _endGameCalled = true;
 
     document.getElementById('pauseBtn')?.classList.add('hidden');
+    document.getElementById('soundBtn')?.classList.add('hidden');  // MOBILE: hide sound btn
     document.getElementById('pauseOverlay')?.classList.add('hidden');
     // B-08 FIX: always clear blitz timer regardless of mode (harmless if undefined)
     clearTimeout(gameCtrl._blitzTimer);
@@ -332,6 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
       _endGameCalled = false; // N-02 FIX: reset flag for next game
       document.getElementById('modeSelector')?.classList.remove('hidden');
       document.getElementById('pauseBtn')?.classList.add('hidden');
+      document.getElementById('soundBtn')?.classList.add('hidden');
     };
     playAgainBtn.addEventListener('touchstart', playAgain, { passive: false });
     playAgainBtn.addEventListener('click', playAgain);

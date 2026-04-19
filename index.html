@@ -131,6 +131,8 @@
 
       <!-- P4-T16: Pause button & overlay -->
       <button id="pauseBtn" class="pause-btn hidden" onclick="togglePause()">⏸</button>
+      <!-- MOBILE SOUND UNLOCK: also acts as mute toggle -->
+      <button id="soundBtn" class="sound-btn hidden" onclick="toggleSound()" title="Toggle Sound">🔊</button>
       <div id="pauseOverlay" class="pause-overlay hidden">
         <div class="pause-card">
           <div style="font-size:3rem;margin-bottom:12px">⏸</div>
@@ -239,7 +241,7 @@
     width:100%;height:100%;z-index:-1;pointer-events:none;opacity:0.28;">
   </canvas>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="sound.js?v=7"></script>
+  <script src="sound.js?v=8"></script>
   <script>
   (function initBg() {
     const canvas = document.getElementById('bgCanvas');
