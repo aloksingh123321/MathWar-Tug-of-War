@@ -1076,17 +1076,19 @@ body, .panel-header, .score, input, label {
     flex-shrink: 0;
   }
 
-  /* Mode selector: fixed overlay covering whole screen */
+  /* Mode selector: fixed full-screen overlay in portrait */
   .mode-selector-overlay {
     position: fixed !important;
-    inset: 0;
-    z-index: 9000;
-    padding: 20px 16px 24px;
-    overflow-y: auto;
+    inset: 0 !important;
+    z-index: 9000 !important;
+    padding: 28px 20px 28px !important;
+    overflow-y: auto !important;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
-    justify-content: flex-start;
-    padding-top: 40px;
+    justify-content: center !important;   /* center vertically so cards sit in middle */
+    align-items: center !important;
+    background: rgba(8, 8, 24, 0.97) !important;
+    backdrop-filter: blur(10px);
   }
 
   .mode-title  { font-size: 1.15rem; letter-spacing: 2px; margin-bottom: 14px; }
